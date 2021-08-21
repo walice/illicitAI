@@ -55,8 +55,8 @@ library(WDI)
 # CODES MASTERLIST          ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-download.file("https://github.com/walice/Codes-Masterlist/raw/master/Codes_Masterlist.xlsx",
-              here("Data", "Codes_Masterlist.xlsx"))
+# download.file("https://github.com/walice/Codes-Masterlist/raw/master/Codes_Masterlist.xlsx",
+#               here("Data", "Codes_Masterlist.xlsx"))
 
 codes <- read_excel(here("Data", "Codes_Masterlist.xlsx"), sheet = "Codes") %>%
   mutate_all(as.character)
@@ -133,7 +133,8 @@ panel_agg <- panel_agg %>%
               distinct(ISO3166.3, .keep_all = TRUE) %>%
               select(ISO3166.3, OECD),
             by = c("partner.ISO" = "ISO3166.3")) %>%
-  rename(pOECD = OECD)
+  rename(pOECD = OECD) %>%
+  mutate_at(vars("rOECD", "pOECD"), ~as.integer(.))
 
 
 
@@ -151,7 +152,7 @@ panel_agg <- left_join(panel_agg, CEPII %>%
                                 comlang_off, comcol, col45,
                                 legal_new_o, legal_new_d, comleg_posttrans,
                                 pop_o, pop_d,
-                                gdp_o, gdp_d, gdp_ppp_d, gdp_ppp_d, gdpcap_o, gdpcap_d,
+                                gdp_o, gdp_d, gdp_ppp_d, gdp_ppp_o, gdpcap_o, gdpcap_d,
                                 gatt_o, gatt_d, wto_o, wto_d, eu_o, eu_d,
                                 rta,
                                 entry_cost_o, entry_cost_d,
@@ -179,19 +180,23 @@ capital <- capital %>%
            eq, eqi, eqo, # Average equity restrictions, inflow, outlflow
            bo, boi, boo, # Average bond restrictions, inflow, outflow
            mm, mmi, mmo, # Average money market restrictions, inflow, outflow
-           cc, cci, cco, # Average collective investments restrictions, inflow, outflow
+           ci, cii, cio, # Average collective investments restrictions, inflow, outflow
            de, dei, deo, # Average derivatives restrictions, inflow, outflow
            cc, cci, cco, # Average commercial credits restrictions, inflow, outflow
            fc, fci, fco, # Average financial credits restrictions, inflow, outflow
            gs, gsi, gso, # Guarantees, sureties and financial backup facilities restrictions, inflow, outflow
            di, dii, dio, # Average direct investments restrictions, inflow, outflow
            re, rei, reo, # Average real estate restrictions, inflow, outflow
-  ))
+  )) %>%
+  mutate_at(vars(-("code_wdi")), ~ifelse(. == "n.a" |
+                                           . == "n.r" |
+                                           . == "d.n.e", NA, .)) %>%
+  mutate_at(vars(-("code_wdi")), ~as.numeric(.))
 
 viz <- capital %>% 
   select(-c(Year, code_wdi)) %>%
   gather("measure", "value") %>%
-  mutate(group = as.factor(rep(seq_len(10), each = 6900)),
+  mutate(group = as.factor(rep(seq_len(11), each = 6900)),
          value = as.numeric(value))
 
 ggplot(viz,
@@ -202,9 +207,17 @@ rm(viz)
 
 # .. Merge capital controls with panel ####
 panel_agg <- panel_agg %>%
-  left_join(capital,
+  left_join(capital %>%
+              rename_at(vars(-c("code_wdi", "Year")), function(x) paste0(x, "_o")),
             by = c("reporter.ISO" = "code_wdi",
                    "year" = "Year"))
+
+panel_agg <- panel_agg %>%
+  left_join(capital %>%
+              rename_at(vars(-c("code_wdi", "Year")), function(x) paste0(x, "_d")),
+            by = c("partner.ISO" = "code_wdi",
+                   "year" = "Year"))
+
 rm(capital)
 
 
@@ -220,7 +233,8 @@ FATF <- read.csv(here("Data", "FATF", "FATF.csv")) %>%
 # .. Merge FATF with panel ####
 panel_agg <- left_join(panel_agg, FATF %>%
                          select(-Country),
-                       by = c("reporter.ISO" = "ISO3166.3"))
+                       by = c("reporter.ISO" = "ISO3166.3")) %>%
+  mutate(FATF = ifelse(is.na(FATF), 0, FATF))
 rm(FATF)
 
 
@@ -294,16 +308,16 @@ rm(FSI, KFSI)
 # IMPORT WGI                ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-WGI <- WDI(indicator = c(corruption = "CC.PER.RNK",
-                         regulatory.qual = "RQ.PER.RNK",
-                         rule.law = "RL.PER.RNK"),
-           start = 2000, extra = TRUE) %>%
-  select(year, iso3c, corruption, regulatory.qual, rule.law) %>%
-  filter(!is.na(iso3c)) %>%
-  filter(!(is.na(corruption) & is.na(regulatory.qual) & is.na(rule.law))) %>%
-  mutate(iso3c = as.character(iso3c)) %>%
-  arrange(year, iso3c)
-save(WGI, file = here("Data", "WB", "WGI.Rdata"))
+# WGI <- WDI(indicator = c(corruption = "CC.PER.RNK",
+#                          regulatory.qual = "RQ.PER.RNK",
+#                          rule.law = "RL.PER.RNK"),
+#            start = 2000, extra = TRUE) %>%
+#   select(year, iso3c, corruption, regulatory.qual, rule.law) %>%
+#   filter(!is.na(iso3c)) %>%
+#   filter(!(is.na(corruption) & is.na(regulatory.qual) & is.na(rule.law))) %>%
+#   mutate(iso3c = as.character(iso3c)) %>%
+#   arrange(year, iso3c)
+# save(WGI, file = here("Data", "WB", "WGI.Rdata"))
 load(here("Data", "WB", "WGI.Rdata"))
 
 
@@ -395,56 +409,58 @@ rm(CPI)
 # IMPORT WITS               ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-# .. Import average tariff line data ####
-tariff <- read.csv(here("Data", "WITS", "DataJobID-2109586_2109586_2digitmisinvoicingnon.csv")) %>%
-  select(Reporter.Name, Partner.Name, Product, Tariff.Year, Simple.Average) %>%
-  rename(reporter = Reporter.Name,
-         partner = Partner.Name,
-         year = Tariff.Year,
-         commodity.code = Product,
-         tariff = Simple.Average) %>%
-  mutate_at(vars(reporter, partner, commodity.code),
-            funs(as.character(.)))
-
-tariff <- left_join(tariff, codes %>%
-                      select(Country, ISO3166.3),
-                    by = c("reporter" = "Country")) %>%
-  rename(reporter.ISO = ISO3166.3)
-
-tariff %>% 
-  filter(is.na(reporter.ISO)) %>%
-  distinct(reporter)
-# European Union
-
-tariff <- left_join(tariff, codes %>%
-                      select(Country, ISO3166.3),
-                    by = c("partner" = "Country")) %>%
-  rename(partner.ISO = ISO3166.3)
-
-tariff %>% 
-  filter(is.na(partner.ISO)) %>%
-  distinct(partner)
-# Bunkers; Unspecified;
-# Special Categories; Free Zones; Neutral Zone; Other Asia, nes
-
-tariff <- tariff %>%
-  filter(!is.na(reporter.ISO) & !is.na(partner.ISO))
-
-tariff %>% distinct(reporter.ISO) %>% nrow
-# 195
-tariff %>% distinct(partner.ISO) %>% nrow
-# 240
-
-
-# .. Generate unique identifier ####
-tariff <- tariff %>%
-  mutate(commodity.code = str_pad(str_trim(commodity.code), 
-                                  width = 2, side = "left", pad = "0"))
-
-tariff$id <- paste(tariff$reporter.ISO, 
-                   tariff$partner.ISO, 
-                   tariff$commodity.code, 
-                   tariff$year, sep = "_")
+# # .. Import average tariff line data ####
+# tariff <- read.csv(here("Data", "WITS", "DataJobID-2109586_2109586_2digitmisinvoicingnon.csv")) %>%
+#   select(Reporter.Name, Partner.Name, Product, Tariff.Year, Simple.Average) %>%
+#   rename(reporter = Reporter.Name,
+#          partner = Partner.Name,
+#          year = Tariff.Year,
+#          commodity.code = Product,
+#          tariff = Simple.Average) %>%
+#   mutate_at(vars(reporter, partner, commodity.code),
+#             funs(as.character(.)))
+# 
+# tariff <- left_join(tariff, codes %>%
+#                       select(Country, ISO3166.3),
+#                     by = c("reporter" = "Country")) %>%
+#   rename(reporter.ISO = ISO3166.3)
+# 
+# tariff %>% 
+#   filter(is.na(reporter.ISO)) %>%
+#   distinct(reporter)
+# # European Union
+# 
+# tariff <- left_join(tariff, codes %>%
+#                       select(Country, ISO3166.3),
+#                     by = c("partner" = "Country")) %>%
+#   rename(partner.ISO = ISO3166.3)
+# 
+# tariff %>% 
+#   filter(is.na(partner.ISO)) %>%
+#   distinct(partner)
+# # Bunkers; Unspecified;
+# # Special Categories; Free Zones; Neutral Zone; Other Asia, nes
+# 
+# tariff <- tariff %>%
+#   filter(!is.na(reporter.ISO) & !is.na(partner.ISO))
+# 
+# tariff %>% distinct(reporter.ISO) %>% nrow
+# # 195
+# tariff %>% distinct(partner.ISO) %>% nrow
+# # 240
+# 
+# 
+# # .. Generate unique identifier ####
+# tariff <- tariff %>%
+#   mutate(commodity.code = str_pad(str_trim(commodity.code), 
+#                                   width = 2, side = "left", pad = "0"))
+# 
+# tariff$id <- paste(tariff$reporter.ISO, 
+#                    tariff$partner.ISO, 
+#                    tariff$commodity.code, 
+#                    tariff$year, sep = "_")
+# save(tariff, file = here("Data", "WITS", "tariff.Rdata"))
+load(here("Data", "WITS", "tariff.Rdata"))
 
 
 # .. Merge with panel ####
@@ -465,6 +481,7 @@ tariff_agg <- tariff %>%
   group_by(reporter, reporter.ISO, partner, partner.ISO, year) %>%
   summarize(tariff = mean(tariff, na.rm = TRUE)) %>%
   ungroup()
+save(tariff_agg, file = here("Data", "WITS", "tariff_agg.Rdata"))
 
 panel_agg <- left_join(panel_agg, tariff_agg %>%
                          select(-c(reporter, partner)),
@@ -505,5 +522,5 @@ panel_agg %>%
   nrow
 # 0
 
-save(panel_agg, file = here("Data", "IFF", "panel.Rdata"))
+save(panel, file = here("Data", "IFF", "panel.Rdata"))
 save(panel_agg, file = here("Data", "IFF", "panel_agg.Rdata"))
