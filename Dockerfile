@@ -1,6 +1,7 @@
-FROM jupyter/scipy-notebook:70178b8e48d7
+FROM jupyter/tensorflow-notebook:70178b8e48d7
 
-# START binder compatibility
+
+# START Binder compatibility
 # from https://mybinder.readthedocs.io/en/latest/tutorials/dockerfile.html
 
 ARG NB_USER
@@ -13,7 +14,59 @@ COPY . ${HOME}/work
 USER root
 RUN chown -R ${NB_UID} ${HOME}
 
-# END binder compatibility code
+# END Binder compatibility code
+
+
+# START R code
+# from https://hub.docker.com/r/jupyter/tensorflow-notebook
+
+# R pre-requisites
+RUN apt-get update --yes && \
+    apt-get install --yes --no-install-recommends \
+    fonts-dejavu \
+    unixodbc \
+    unixodbc-dev \
+    r-cran-rodbc \
+    gfortran \
+    gcc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Fix for devtools https://github.com/conda-forge/r-devtools-feedstock/issues/4
+RUN ln -s /bin/tar /bin/gtar
+
+USER ${NB_UID}
+
+# R packages including IRKernel which gets installed globally.
+RUN conda install --quiet --yes \
+    'r-base' \
+    'r-caret' \
+    'r-crayon' \
+    'r-devtools' \
+    'r-forecast' \
+    'r-hexbin' \
+    'r-htmltools' \
+    'r-htmlwidgets' \
+    'r-irkernel' \
+    'r-nycflights13' \
+    'r-randomforest' \
+    'r-rcurl' \
+    'r-rmarkdown' \
+    'r-rodbc' \
+    'r-rsqlite' \
+    'r-shiny' \
+    'r-tidymodels' \
+    'r-tidyverse' \
+    'unixodbc' && \
+    conda clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+
+# Install e1071 R package (dependency of the caret R package)
+RUN conda install --quiet --yes 'r-e1071' && \
+    conda clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
+# END R code
 
 # Add modification code below
 
@@ -34,7 +87,7 @@ RUN \
     jupyter nbextension install rise --py --sys-prefix && \
     jupyter nbextension enable rise --py --sys-prefix && \
     \
-    pip install nbzip && \
+    pip install nbzip lightgbm && \
     jupyter serverextension enable nbzip --py --sys-prefix && \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix
