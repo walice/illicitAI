@@ -108,6 +108,8 @@ panel_agg <- panel_agg %>%
   mutate(Tot_IFF = sum(Imp_IFF, Exp_IFF, na.rm = TRUE),
          In_Tot_IFF = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE)) %>%
   ungroup %>%
+  mutate(Tot_IFF = ifelse(Tot_IFF == 0, NA, Tot_IFF),
+         In_Tot_IFF = ifelse(In_Tot_IFF == 0, NA, In_Tot_IFF)) %>%
   mutate(ln.Imp_IFF = log(abs(Imp_IFF)), # Import over-invoicing
          ln.Exp_IFF = log(abs(Exp_IFF)), # Export under-invoicing
          ln.Tot_IFF = log(abs(Tot_IFF)), # Gross outflows
@@ -520,7 +522,14 @@ panel_agg %>%
 panel_agg %>%
   filter(is.na(ln.In_Tot_IFF)) %>%
   nrow
-# 0
+# 4588
+
+panel_agg %>%
+  filter(!is.na(ln.Tot_IFF) & is.na(ln.In_Tot_IFF)) %>%
+  nrow
+# 4588
 
 save(panel, file = here("Data", "IFF", "panel.Rdata"))
 save(panel_agg, file = here("Data", "IFF", "panel_agg.Rdata"))
+write.csv(panel_agg, file = here("Data", "IFF", "panel_agg.csv"),
+          row.names = F)
