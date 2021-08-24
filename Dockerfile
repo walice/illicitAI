@@ -29,6 +29,7 @@ RUN apt-get update --yes && \
     r-cran-rodbc \
     gfortran \
     gcc \
+    unzip \
     libfontconfig1-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 # libfontconfig1-dev is a dependency for kableExtra/systemfonts
