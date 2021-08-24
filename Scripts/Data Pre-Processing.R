@@ -22,8 +22,8 @@
 ## ## ## ## ## ## ## ## ## ## ##
 
 library(here)
-library(tidyverse)
 # source(here("Scripts", "Data Preparation.R"))
+library(tidyverse)
 
 
 
@@ -256,3 +256,5 @@ save(panel_agg_trans, file = here("Data", "IFF", "panel_agg_trans.Rdata"))
 save(id_vars, dep_vars, grav_vars, secrecy_vars,
      governance_vars, capcontrol_vars, macro_vars,
      file = here("Results", "vars.Rdata"))
+
+rm(panel_agg, ihs)
