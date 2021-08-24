@@ -25,7 +25,7 @@ library(tidyverse)
 # IMPORT RESULTS            ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-test_smp <- arrow::read_feather(here("Results", "test_smp.feather"))
+test_smp <- arrow::read_feather(here("Results", "test_smp_trans.feather"))
 preds <- arrow::read_feather("Results/preds.feather") %>%
   rename(preds = "0")
 
