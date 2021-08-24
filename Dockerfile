@@ -57,7 +57,6 @@ RUN conda install --quiet --yes \
     'r-tidymodels' \
     'r-tidyverse' \
     'r-here' \
-    'r-arrow' \
     'r-feather' \
     'unixodbc' && \
     conda clean --all -f -y && \
@@ -90,7 +89,7 @@ RUN \
     jupyter nbextension install rise --py --sys-prefix && \
     jupyter nbextension enable rise --py --sys-prefix && \
     \
-    pip install nbzip lightgbm feather-format && \
+    pip install nbzip lightgbm pyarrow feather-format && \
     jupyter serverextension enable nbzip --py --sys-prefix && \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix
