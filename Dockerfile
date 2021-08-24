@@ -28,8 +28,10 @@ RUN apt-get update --yes && \
     unixodbc-dev \
     r-cran-rodbc \
     gfortran \
-    gcc && \
+    gcc \
+    libfontconfig1-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+# libfontconfig1-dev is a dependency for kableExtra/systemfonts
 
 # Fix for devtools https://github.com/conda-forge/r-devtools-feedstock/issues/4
 RUN ln -s /bin/tar /bin/gtar
@@ -58,6 +60,13 @@ RUN conda install --quiet --yes \
     'r-tidyverse' \
     'r-here' \
     'r-feather' \
+    'r-ggridges' \
+    'r-janitor' \
+    'r-kableExtra' \
+    'r-lfe' \
+    'r-plm' \
+    'r-stargazer' \
+    'r-WDI' \
     'unixodbc' && \
     conda clean --all -f -y && \
     fix-permissions "${CONDA_DIR}" && \
@@ -68,6 +77,10 @@ RUN conda install --quiet --yes 'r-e1071' && \
     conda clean --all -f -y && \
     fix-permissions "${CONDA_DIR}" && \
     fix-permissions "/home/${NB_USER}"
+
+# Install R libraries (arrow package)
+COPY ./requirements.R .
+RUN Rscript requirements.R
 # END R code
 
 # Add modification code below
