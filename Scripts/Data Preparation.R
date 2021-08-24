@@ -88,6 +88,7 @@ sum(is.na(panel$Tot_IFF))
 # .. Misinvoicing for reporter-partner-year ####
 load(here("Data", "IFF", "GER_Orig_Dest_Year.Rdata"))
 load(here("Data", "IFF", "Inflow_GER_Orig_Dest_Year.Rdata"))
+load(here("Data", "IFF", "Net_Orig_Dest_Year.Rdata"))
 
 Inflow_GER_Orig_Dest_Year <- Inflow_GER_Orig_Dest_Year %>%
   rename(In_Imp_IFF = Imp_IFF,
@@ -99,14 +100,24 @@ panel_agg <- left_join(GER_Orig_Dest_Year, Inflow_GER_Orig_Dest_Year %>%
                        by = c("reporter.ISO" = "reporter.ISO",
                               "partner.ISO" = "partner.ISO",
                               "year" = "year"))
-rm(GER_Orig_Dest_Year, Inflow_GER_Orig_Dest_Year)
+
+panel_agg <- left_join(panel_agg, Net_Orig_Dest_Year %>%
+                         select(c(reporter.ISO, partner.ISO, year,
+                                  Net_Imp_IFF = Imp_IFF, 
+                                  Net_Exp_IFF = Exp_IFF)),
+                       by = c("reporter.ISO" = "reporter.ISO",
+                              "partner.ISO" = "partner.ISO",
+                              "year" = "year"))
+
+rm(GER_Orig_Dest_Year, Inflow_GER_Orig_Dest_Year, Net_Orig_Dest_Year)
 
 
 # .. Generate and transform outcome variables ####
 panel_agg <- panel_agg %>%
   rowwise() %>% 
   mutate(Tot_IFF = sum(Imp_IFF, Exp_IFF, na.rm = TRUE),
-         In_Tot_IFF = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE)) %>%
+         In_Tot_IFF = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE),
+         Net_IFF = sum(Net_Imp_IFF, Net_Exp_IFF, na.rm = TRUE)) %>%
   ungroup %>%
   mutate(Tot_IFF = ifelse(Tot_IFF == 0, NA, Tot_IFF),
          In_Tot_IFF = ifelse(In_Tot_IFF == 0, NA, In_Tot_IFF)) %>%
@@ -528,6 +539,11 @@ panel_agg %>%
   filter(!is.na(ln.Tot_IFF) & is.na(ln.In_Tot_IFF)) %>%
   nrow
 # 4588
+
+panel_agg %>%
+  filter(is.na(Net_IFF)) %>%
+  nrow
+# 0
 
 save(panel, file = here("Data", "IFF", "panel.Rdata"))
 save(panel_agg, file = here("Data", "IFF", "panel_agg.Rdata"))
