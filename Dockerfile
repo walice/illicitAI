@@ -88,6 +88,8 @@ RUN Rscript requirements.R
 USER root
 
 # RStudio pre-requisites
+# from https://github.com/rstudio/rstudio-docker-products/blob/main/r-session-complete/bionic/Dockerfile
+# and https://support.rstudio.com/hc/en-us/articles/206794537-Common-dependencies-for-RStudio-Workbench-and-RStudio-Server
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         psmisc \
@@ -99,7 +101,13 @@ RUN apt-get update && \
         libedit2 \
         libc6 \
         psmisc \
-        rrdtool && \
+        rrdtool \
+        libcurl4-gnutls-dev \
+        libssl1.0.0 \
+        libssl-dev \
+        libuser \
+        libuser1-dev \
+        libpq-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 ENV PATH=$PATH:/${NB_USER}/lib/rstudio-server/bin \
