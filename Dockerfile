@@ -1,9 +1,9 @@
 FROM jupyter/tensorflow-notebook:70178b8e48d7
+LABEL maintainer="Alice Lepissier <alice.lepissier@gmail.com>"
 
 
-# START Binder compatibility
+##### START Binder compatibility
 # from https://mybinder.readthedocs.io/en/latest/tutorials/dockerfile.html
-
 ARG NB_USER
 ARG NB_UID
 ENV USER ${NB_USER}
@@ -13,12 +13,11 @@ ENV HOME /home/${NB_USER}
 COPY . ${HOME}/work
 USER root
 RUN chown -R ${NB_UID} ${HOME}
+##### END Binder compatibility code
 
-# END Binder compatibility code
 
-
-# START R code
-# from https://hub.docker.com/r/jupyter/tensorflow-notebook
+##### START R code
+# from https://github.com/jupyter/docker-stacks/blob/master/r-notebook/Dockerfile
 
 # R pre-requisites
 RUN apt-get update --yes && \
@@ -29,7 +28,6 @@ RUN apt-get update --yes && \
     r-cran-rodbc \
     gfortran \
     gcc \
-    unzip \
     libfontconfig1-dev && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 # libfontconfig1-dev is a dependency for kableExtra/systemfonts
@@ -82,13 +80,61 @@ RUN conda install --quiet --yes 'r-e1071' && \
 # Install R libraries (arrow package)
 COPY ./requirements.R .
 RUN Rscript requirements.R
-# END R code
+##### END R code
+
+
+##### START RStudio code
+# from https://github.com/dddlab/docker-notebooks/blob/master/python-rstudio-notebook/Dockerfile
+USER root
+
+# Rstudio Pre-requisites
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        psmisc \
+        libapparmor1 \
+        lsb-release \
+        libclang-dev \
+        zip unzip \
+        tree && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* 
+
+ENV PATH=$PATH:/$NB_USER/lib/rstudio-server/bin \
+    R_HOME=/opt/conda/lib/R
+ARG LITTLER=$R_HOME/library/littler
+
+RUN \
+    # download R studio
+    curl --silent -L --fail https://s3.amazonaws.com/rstudio-ide-build/server/bionic/amd64/rstudio-server-1.2.1578-amd64.deb > /tmp/rstudio.deb && \
+    echo '81f72d5f986a776eee0f11e69a536fb7 /tmp/rstudio.deb' | md5sum -c - && \
+    \
+    # install R studio
+    apt-get update && \
+    apt-get install -y --no-install-recommends /tmp/rstudio.deb && \
+    rm /tmp/rstudio.deb && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    \
+    # setting default CRAN mirror
+    echo -e "local({\n r <- getOption('repos')\n r['CRAN'] <- 'https://cloud.r-project.org'\n  options(repos = r)\n })" > $R_HOME/etc/Rprofile.site && \
+    \
+    # littler provides install2.r script
+    R -e "install.packages(c('littler', 'docopt'))" && \
+    \
+    # modifying littler scripts to conda R location
+    sed -i 's/\/$NB_USER\/local\/lib\/R\/site-library/\/opt\/conda\/lib\/R\/library/g' \
+        ${LITTLER}/examples/*.r && \
+    ln -s ${LITTLER}/bin/r ${LITTLER}/examples/*.r /usr/local/bin/ && \
+    echo "$R_HOME/lib" | sudo tee -a /etc/ld.so.conf.d/littler.conf && \
+    ldconfig && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
+##### END RStudio code
+
 
 # Add modification code below
 
 USER ${NB_USER}
 
-# Jupyter notebook extensions
+##### Jupyter notebook extensions
 RUN \
     pip install jupyter_contrib_nbextensions && \
     jupyter contrib nbextension install --sys-prefix && \
@@ -108,6 +154,6 @@ RUN \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix
 
-# Jupyter Lab extensions
+##### Jupyter Lab extensions
 RUN jupyter labextension install @jupyterlab/toc --clean && \
     jupyter labextension install nbdime-jupyterlab
