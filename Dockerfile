@@ -127,6 +127,12 @@ RUN \
     ldconfig && \
     fix-permissions $CONDA_DIR && \
     fix-permissions /home/$NB_USER
+
+# Run RStudio
+ENV RSTUDIO_VERSION 1.2.1578
+RUN gdebi -n rstudio-server-${RSTUDIO_VERSION}-amd64.deb
+EXPOSE 8888 8889
+CMD /usr/lib/rstudio-server/bin/rserver
 ##### END RStudio code
 
 
