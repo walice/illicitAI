@@ -107,7 +107,8 @@ RUN apt-get update && \
         libssl-dev \
         libuser \
         libuser1-dev \
-        libpq-dev && \
+        libpq-dev \
+        libpq5 && \
     apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 ENV PATH=$PATH:/${NB_USER}/lib/rstudio-server/bin \
