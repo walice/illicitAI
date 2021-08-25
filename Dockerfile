@@ -87,7 +87,7 @@ RUN Rscript requirements.R
 # from https://github.com/dddlab/docker-notebooks/blob/master/python-rstudio-notebook/Dockerfile
 USER root
 
-# Rstudio Pre-requisites
+# RStudio pre-requisites
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         psmisc \
@@ -98,43 +98,37 @@ RUN apt-get update && \
         tree && \
     apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-ENV PATH=$PATH:/$NB_USER/lib/rstudio-server/bin \
+ENV PATH=$PATH:/${NB_USER}/lib/rstudio-server/bin \
     R_HOME=/opt/conda/lib/R
-ARG LITTLER=$R_HOME/library/littler
+ARG LITTLER=${R_HOME}/library/littler
 
 RUN \
-    # download R studio
+    # Download RStudio
     curl --silent -L --fail https://s3.amazonaws.com/rstudio-ide-build/server/bionic/amd64/rstudio-server-1.2.1578-amd64.deb > /tmp/rstudio.deb && \
     echo '81f72d5f986a776eee0f11e69a536fb7 /tmp/rstudio.deb' | md5sum -c - && \
     \
-    # install R studio
+    # Install RStudio
     apt-get update && \
     apt-get install -y --no-install-recommends /tmp/rstudio.deb && \
     rm /tmp/rstudio.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     \
-    # setting default CRAN mirror
+    # Set default CRAN mirror
     echo -e "local({\n r <- getOption('repos')\n r['CRAN'] <- 'https://cloud.r-project.org'\n  options(repos = r)\n })" > $R_HOME/etc/Rprofile.site && \
     \
-    # littler provides install2.r script
+    # Littler provides install2.r script
     R -e "install.packages(c('littler', 'docopt'))" && \
     \
-    # modifying littler scripts to conda R location
-    sed -i 's/\/$NB_USER\/local\/lib\/R\/site-library/\/opt\/conda\/lib\/R\/library/g' \
+    # Modify littler scripts to conda R location
+    sed -i 's/\/${NB_USER}\/local\/lib\/R\/site-library/\/opt\/conda\/lib\/R\/library/g' \
         ${LITTLER}/examples/*.r && \
     ln -s ${LITTLER}/bin/r ${LITTLER}/examples/*.r /usr/local/bin/ && \
-    echo "$R_HOME/lib" | sudo tee -a /etc/ld.so.conf.d/littler.conf && \
+    echo "${R_HOME}/lib" | sudo tee -a /etc/ld.so.conf.d/littler.conf && \
     ldconfig && \
-    fix-permissions $CONDA_DIR && \
-    fix-permissions /home/$NB_USER
-
-# Run RStudio
-EXPOSE 8787
-CMD /usr/sbin/rstudio-server
+    fix-permissions ${CONDA_DIR} && \
+    fix-permissions /home/${NB_USER}
 ##### END RStudio code
 
-
-# Add modification code below
 
 USER ${NB_USER}
 
@@ -143,21 +137,21 @@ USER ${NB_USER}
 RUN \
     pip install jupyter_contrib_nbextensions && \
     jupyter contrib nbextension install --sys-prefix && \
+    jupyter nbextensions_configurator enable --sys-prefix && \
     \
     jupyter nbextension enable toc2/main --sys-prefix && \
-    jupyter nbextension enable export_embedded/main --sys-prefix
-
-RUN \
-    jupyter nbextensions_configurator enable --sys-prefix && \
+    jupyter nbextension enable export_embedded/main --sys-prefix && \
     \
     pip install --pre rise && \
     jupyter nbextension install rise --py --sys-prefix && \
     jupyter nbextension enable rise --py --sys-prefix && \
     \
-    pip install nbzip lightgbm pyarrow feather-format && \
+    pip install nbzip && \
     jupyter serverextension enable nbzip --py --sys-prefix && \
     jupyter nbextension install nbzip --py --sys-prefix && \
-    jupyter nbextension enable nbzip --py --sys-prefix
+    jupyter nbextension enable nbzip --py --sys-prefix && \
+    \
+    pip install lightgbm pyarrow feather-format
 
 
 ##### Jupyter Lab extensions
@@ -169,9 +163,9 @@ RUN jupyter labextension install @jupyterlab/toc --clean && \
 # from https://github.com/dddlab/docker-notebooks/blob/master/python-rstudio-notebook/Dockerfile
 RUN pip install jupyter-server-proxy jupyter-rsession-proxy && \
     \
-    # remove cache
+    # Remove cache
     rm -rf ~/.cache/pip ~/.cache/matplotlib ~/.cache/yarn && \
     \
     conda clean --all -f -y && \
-    fix-permissions $CONDA_DIR && \
-    fix-permissions /home/$NB_USER
+    fix-permissions ${CONDA_DIR} && \
+    fix-permissions /home/${NB_USER}
