@@ -148,7 +148,7 @@ RUN \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix && \
     \
-    pip install lightgbm pyarrow feather-format
+    pip install lightgbm pyarrow feather-format papermill
 
 
 ##### Jupyter Lab extensions
