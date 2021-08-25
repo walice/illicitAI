@@ -104,15 +104,12 @@ ARG LITTLER=${R_HOME}/library/littler
 
 RUN \
     # Download RStudio
-    curl --silent -L --fail https://s3.amazonaws.com/rstudio-ide-build/server/bionic/amd64/rstudio-server-1.2.1578-amd64.deb > /tmp/rstudio.deb && \
-    echo '81f72d5f986a776eee0f11e69a536fb7 /tmp/rstudio.deb' | md5sum -c - && \
-    \
-    # Install RStudio
     apt-get update && \
-    apt-get install -y --no-install-recommends /tmp/rstudio.deb && \
-    rm /tmp/rstudio.deb && \
+    apt-get install -y gdebi-core && \
+    wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.4.1717-amd64.deb && \
+    gdebi rstudio-server-1.4.1717-amd64.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    \
+    echo 'ce2c6d5423823716bbd6c2d819812ed98b6ab3ea96bcfdbc6d310fd1c1286b17 rstudio-server-1.4.1717-amd64.deb' | sha256sum -c - && \
     # Set default CRAN mirror
     echo -e "local({\n r <- getOption('repos')\n r['CRAN'] <- 'https://cloud.r-project.org'\n  options(repos = r)\n })" > $R_HOME/etc/Rprofile.site && \
     \
