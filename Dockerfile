@@ -107,9 +107,9 @@ RUN \
     apt-get update && \
     apt-get install -y gdebi-core && \
     wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.4.1717-amd64.deb && \
+    echo 'ce2c6d5423823716bbd6c2d819812ed98b6ab3ea96bcfdbc6d310fd1c1286b17  rstudio-server-1.4.1717-amd64.deb' | sha256sum -c && \
     gdebi rstudio-server-1.4.1717-amd64.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    echo 'ce2c6d5423823716bbd6c2d819812ed98b6ab3ea96bcfdbc6d310fd1c1286b17 rstudio-server-1.4.1717-amd64.deb' | sha256sum -c - && \
     # Set default CRAN mirror
     echo -e "local({\n r <- getOption('repos')\n r['CRAN'] <- 'https://cloud.r-project.org'\n  options(repos = r)\n })" > $R_HOME/etc/Rprofile.site && \
     \
