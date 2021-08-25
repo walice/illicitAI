@@ -95,7 +95,11 @@ RUN apt-get update && \
         lsb-release \
         libclang-dev \
         zip unzip \
-        tree && \
+        tree \
+        libedit2 \
+        libc6 \
+        psmisc \
+        rrdtool && \
     apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 ENV PATH=$PATH:/${NB_USER}/lib/rstudio-server/bin \
