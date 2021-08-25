@@ -138,6 +138,7 @@ CMD /usr/sbin/rstudio-server
 
 USER ${NB_USER}
 
+
 ##### Jupyter notebook extensions
 RUN \
     pip install jupyter_contrib_nbextensions && \
@@ -158,6 +159,19 @@ RUN \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix
 
+
 ##### Jupyter Lab extensions
 RUN jupyter labextension install @jupyterlab/toc --clean && \
     jupyter labextension install nbdime-jupyterlab
+
+
+##### Jupyter & RStudio
+# from https://github.com/dddlab/docker-notebooks/blob/master/python-rstudio-notebook/Dockerfile
+RUN pip install jupyter-server-proxy jupyter-rsession-proxy && \
+    \
+    # remove cache
+    rm -rf ~/.cache/pip ~/.cache/matplotlib ~/.cache/yarn && \
+    \
+    conda clean --all -f -y && \
+    fix-permissions $CONDA_DIR && \
+    fix-permissions /home/$NB_USER
