@@ -4,7 +4,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    image: jupyter-python-r-tensor:${TAG:-latest}
+    image: jupyter-python-rstudio-tensor:${TAG:-latest}
     volumes:
       - ${HOST_DIR}:/home/jovyan/work
       - ${CERT_DIR}:/etc/ssl/notebook
