@@ -79,17 +79,21 @@ RUN conda install --quiet --yes 'r-e1071' && \
 
 # Install R libraries (arrow package)
 COPY ./requirements.R .
-RUN Rscript requirements.R
+RUN Rscript requirements.R && rm requirements.R
 ##### END R code
 
 
 ##### START RStudio code
 # from https://github.com/dddlab/docker-notebooks/blob/master/python-rstudio-notebook/Dockerfile
+# Latest possible version before RStudio and jupyter-rsession-proxy break as issue described at
+# https://github.com/jupyterhub/jupyter-rsession-proxy/issues/93
+ENV RSTUDIO_VERSION=1.2.5042
 USER root
 
 # RStudio pre-requisites
 # from https://github.com/rstudio/rstudio-docker-products/blob/main/r-session-complete/bionic/Dockerfile
 # and https://support.rstudio.com/hc/en-us/articles/206794537-Common-dependencies-for-RStudio-Workbench-and-RStudio-Server
+# and https://github.com/rocker-org/rocker-versioned/blob/master/rstudio/3.6.3.Dockerfile
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         psmisc \
@@ -103,7 +107,7 @@ RUN apt-get update && \
         psmisc \
         rrdtool \
         libcurl4-gnutls-dev \
-        libssl1.0.0 \
+        libssl1.1 \
         libssl-dev \
         libuser \
         libuser1-dev \
@@ -116,12 +120,14 @@ ENV PATH=$PATH:/${NB_USER}/lib/rstudio-server/bin \
 ARG LITTLER=${R_HOME}/library/littler
 
 RUN \
-    # Download RStudio
+    # Download R studio
+    curl --silent -L --fail https://s3.amazonaws.com/rstudio-ide-build/server/bionic/amd64/rstudio-server-${RSTUDIO_VERSION}-amd64.deb > /tmp/rstudio.deb && \
+    #echo '81f72d5f986a776eee0f11e69a536fb7 /tmp/rstudio.deb' | md5sum -c - && \
+    \
+    # Install R studio
     apt-get update && \
-    apt-get install -y gdebi-core && \
-    wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.4.1717-amd64.deb && \
-    echo 'ce2c6d5423823716bbd6c2d819812ed98b6ab3ea96bcfdbc6d310fd1c1286b17  rstudio-server-1.4.1717-amd64.deb' | sha256sum -c && \
-    gdebi rstudio-server-1.4.1717-amd64.deb && \
+    apt-get install -y --no-install-recommends /tmp/rstudio.deb && \
+    rm /tmp/rstudio.deb && \
     apt-get clean && rm -rf /var/lib/apt/lists/* && \
     # Set default CRAN mirror
     echo -e "local({\n r <- getOption('repos')\n r['CRAN'] <- 'https://cloud.r-project.org'\n  options(repos = r)\n })" > $R_HOME/etc/Rprofile.site && \
