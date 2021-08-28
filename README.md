@@ -4,9 +4,9 @@
 ```
 Peregrine
 |____
-     |__ IllicitAI (Docker container & Git repo)
-VM   |            |__ IllicitAI.Rproj
-|____|            |__ Data (download from Zenodo)
+     |__ illicitAI (Docker container & Git repo)
+VM   |            |__ illicitAI.Rproj
+|____|            |__ Data (run postBuild.sh or download from Zenodo)
                   |   |__ CEPII
                   |   |__ FATF
                   |   |__ IFF
@@ -21,7 +21,45 @@ VM   |            |__ IllicitAI.Rproj
                   |__ Scripts
                   |   |__ Data Preparation.R
                   |   |__ Analysis.R
-                  |__ Dockerfile
                   |__ docker-compose.yml
+                  |__ Dockerfile
+                  |__ postBuild.sh
+                  |__ requirements.R
                   |__ setup.sh
+```
+
+<div><span style="font-weight:bold;font-size:28px">Run the code live in Jupyter Lab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/main?urlpath=lab"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/jupyter/jupyter-original-wordmark.svg" alt="Jupyter" width="100"/></a></div>
+
+<div><span style="font-weight:bold;font-size:28px">Run the code live in RStudio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/main?urlpath=rstudio"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/rstudio/rstudio-original.svg" alt="RStudio" width="85"/></a></div>
+
+
+### Set up
+
+You can also clone this repo on your machine and spin it up in a Docker container. *Requirements: docker*.
+
+```
+git clone https://github.com/walice/illicitAI.git
+cd illicitAI
+docker-compose up --build -d
+```
+
+Then, run the `postBuild.sh` script to download the Data.
+
+```
+chmod +x postBuild.sh
+./postBuild.sh
+```
+
+Run the `makefile`.
+
+```
+Rscript ~/work/Scripts/DataPreparation.R
+Rscript ~/work/Scripts/DataPreprocessing.R
+Rscript ~/work/Scripts/Analysis.R
+```
+
+Execute the notebooks via papermill.
+
+```
+jupyter run execute-notebook.py
 ```
