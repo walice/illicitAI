@@ -1,4 +1,4 @@
-# Data Preparation_panel
+# Data Preparation for disaggregated panel
 # Alice Lepissier
 # alice.lepissier@gmail.com
 # Chapter 3

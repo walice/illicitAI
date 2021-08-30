@@ -8,9 +8,11 @@
 ## ## ## ## ## ## ## ## ## ## ##
 # Preamble
 # Import Panel
-# Pre-Processing
-# .. Categorize variable names
-# .. Summary statistics
+# Organize Variables
+# Summary Statistics
+# .. For panel
+# .. For aggregated panel
+# Transformations
 # .. Visualize distributions
 # .. Transform continuous variables
 # Export Transformed Data
@@ -22,7 +24,8 @@
 ## ## ## ## ## ## ## ## ## ## ##
 
 library(here)
-# source(here("Scripts", "Data Preparation.R"))
+# source(here("Scripts", "Data Preparation_panel_agg.R"))
+# source(here("Scripts", "Data Preparation_panel.R"))
 library(tidyverse)
 
 
@@ -32,29 +35,37 @@ library(tidyverse)
 ## ## ## ## ## ## ## ## ## ## ##
 
 load(here("Data", "IFF", "panel_agg.Rdata"))
+load(here("Data", "IFF", "panel.Rdata"))
 
 
 
 ## ## ## ## ## ## ## ## ## ## ##
-# PRE-PROCESSING            ####
+# ORGANIZE VARIABLES        ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-# .. Categorize variable names ####
-id_vars <- c("year",
-             "id", "id_bilateral",
-             "reporter", "reporter.ISO",
-             "rRegion", "rIncome", "rDev", "rHDI",
-             "partner", "partner.ISO",
-             "pRegion", "pIncome", "pDev", "pHDI",
-             "rOECD", "pOECD",
-             "gatt_o", "gatt_d",
-             "wto_o", "wto_d",
-             "eu_o", "eu_d")
+id_vars_agg <- c("year",
+                 "id", "id_bilateral",
+                 "reporter", "reporter.ISO",
+                 "rRegion", "rIncome", "rDev", "rHDI",
+                 "partner", "partner.ISO",
+                 "pRegion", "pIncome", "pDev", "pHDI",
+                 "rOECD", "pOECD",
+                 "gatt_o", "gatt_d",
+                 "wto_o", "wto_d",
+                 "eu_o", "eu_d")
 
-dep_vars <- c("Imp_IFF", "Exp_IFF", "Tot_IFF",
-              "ln.Imp_IFF", "ln.Exp_IFF", "ln.Tot_IFF",
-              "In_Imp_IFF", "In_Exp_IFF", "In_Tot_IFF",
-              "ln.In_Imp_IFF", "ln.In_Exp_IFF", "ln.In_Tot_IFF")
+id_vars <- c(id_vars_agg, "id_trilateral",
+             "commodity.code", "section", "section.code", "SITC.section", "SITC.code")
+
+dep_vars_agg <- c("Imp_IFF", "Exp_IFF", "Tot_IFF",
+                  "ln.Imp_IFF", "ln.Exp_IFF", "ln.Tot_IFF",
+                  "In_Imp_IFF", "In_Exp_IFF", "In_Tot_IFF",
+                  "ln.In_Imp_IFF", "ln.In_Exp_IFF", "ln.In_Tot_IFF",
+                  "Net_Imp_IFF", "Net_Exp_IFF", "Net_IFF")
+
+dep_vars <- c("Imp_IFF", "Exp_IFF",
+              "Net_Tot_IFF", "GER_Tot_IFF", "In_GER_Tot_IFF",
+              "ln.GER_Tot_IFF", "ln.In_GER_Tot_IFF")
 
 grav_vars <- c("dist", "contig",
                "comcol", "col45", "comlang_off",
@@ -102,20 +113,87 @@ governance_vars <- c("FATF",
                      "rRegQual", "pRegQual",
                      "rRuleLaw", "pRuleLaw")
 
-(length(id_vars) + length(dep_vars) + length(grav_vars) + length(capcontrol_vars) + 
+flow_vars <- c("Import_value", "NetExport_value",
+               "pImport_value", "pNetExport_value")
+
+(length(id_vars_agg) + length(dep_vars_agg) + length(grav_vars) + length(capcontrol_vars) + 
     length(macro_vars) + length(secrecy_vars) + length(governance_vars)) == ncol(panel_agg)
 # TRUE
 
-ncol(panel_agg[, id_vars])
-ncol(panel_agg[, dep_vars])
+(length(id_vars) + length(dep_vars) + length(grav_vars) + length(capcontrol_vars) + 
+    length(macro_vars) + length(secrecy_vars) + length(governance_vars) + length(flow_vars)) == ncol(panel)
+# TRUE
+
+ncol(panel_agg[, id_vars_agg])
+ncol(panel[, id_vars])
+ncol(panel_agg[, dep_vars_agg])
+ncol(panel[, dep_vars])
 ncol(panel_agg[, grav_vars])
 ncol(panel_agg[, capcontrol_vars])
 ncol(panel_agg[, macro_vars])
 ncol(panel_agg[, secrecy_vars])
 ncol(panel_agg[, governance_vars])
+ncol(panel[, flow_vars])
 
 
-# .. Summary statistics ####
+
+## ## ## ## ## ## ## ## ## ## ##
+# SUMMARY STATISTICS        ####
+## ## ## ## ## ## ## ## ## ## ##
+
+# .. For panel ####
+summary(panel)
+
+panel %>%
+  filter(is.na(Net_Tot_IFF)) %>%
+  nrow
+# 0
+
+panel %>%
+  filter(is.na(Imp_IFF) & is.na(Exp_IFF)) %>%
+  nrow
+# 0
+
+panel %>%
+  filter(is.na(ln.GER_Tot_IFF) & is.na(ln.In_GER_Tot_IFF)) %>%
+  nrow
+# 0
+
+(panel %>%
+    filter(complete.cases(Imp_IFF, Exp_IFF,
+                          Net_Tot_IFF, GER_Tot_IFF, In_GER_Tot_IFF,
+                          ln.GER_Tot_IFF, ln.In_GER_Tot_IFF)) %>%
+    nrow) / nrow(panel)*100
+# 49.74228
+
+lapply(panel, class)
+
+panel <- panel %>%
+  mutate_at(vars("rRegion", "rIncome", "rDev", "rHDI",
+                 "pRegion", "pIncome", "pDev", "pHDI",
+                 "section", "section.code",
+                 "SITC.section", "SITC.code"),
+            ~as.factor(.))
+
+panel <- panel %>%
+  mutate_at(vars("commodity.code"),
+            ~as.numeric(.))
+
+panel %>%
+  select(c("rRegion", "rIncome", "rDev", "rHDI",
+           "pRegion", "pIncome", "pDev", "pHDI",
+           "legal_new_o", "legal_new_d",
+           "section", "section.code",
+           "SITC.section", "SITC.code")) %>%
+  sapply(levels)
+
+panel <- panel %>%
+  select(all_of(id_vars), all_of(dep_vars),
+         all_of(grav_vars), all_of(governance_vars), all_of(secrecy_vars),
+         all_of(macro_vars), all_of(capcontrol_vars), all_of(flow_vars))
+
+
+# .. For aggregated panel ####
 summary(panel_agg)
 
 panel_agg %>%
@@ -146,10 +224,15 @@ panel_agg %>%
   sapply(levels)
 
 panel_agg <- panel_agg %>%
-  select(all_of(id_vars), all_of(dep_vars),
+  select(all_of(id_vars_agg), all_of(dep_vars_agg),
          all_of(grav_vars), all_of(governance_vars), all_of(secrecy_vars),
          all_of(macro_vars), all_of(capcontrol_vars))
 
+
+
+## ## ## ## ## ## ## ## ## ## ##
+# TRANSFORMATIONS           ####
+## ## ## ## ## ## ## ## ## ## ##
 
 # .. Visualize distributions ####
 plot(density(panel_agg$tariff)) # Right-skewed
@@ -200,6 +283,8 @@ ihs <- function(x){
 }
 
 # Check whether there are zeros in the data
+summary(log(panel$tariff))
+# Need inverse hyperbolic sine transformation
 summary(log(panel_agg$tariff))
 # Need inverse hyperbolic sine transformation
 summary(log(panel_agg$gdp_o))
@@ -219,6 +304,17 @@ summary(log(panel_agg$entry_cost_o))
 summary(log(panel_agg$entry_cost_d))
 # Need inverse hyperbolic sine transformation
 
+panel <- panel %>%
+  mutate(ihs.tariff = ihs(tariff),
+         ln.gdp_o = log(gdp_o),
+         ln.gdp_d = log(gdp_d),
+         ln.pop_o = log(pop_o),
+         ln.pop_d = log(pop_d),
+         ln.gdpcap_o = log(gdpcap_o),
+         ln.gdpcap_d = log(gdpcap_d),
+         ihs.entry_cost_o = ihs(entry_cost_o),
+         ihs.entry_cost_d = ihs(entry_cost_d))
+
 panel_agg <- panel_agg %>%
   mutate(ihs.tariff = ihs(tariff),
          ln.gdp_o = log(gdp_o),
@@ -229,6 +325,14 @@ panel_agg <- panel_agg %>%
          ln.gdpcap_d = log(gdpcap_d),
          ihs.entry_cost_o = ihs(entry_cost_o),
          ihs.entry_cost_d = ihs(entry_cost_d))
+
+par(mfrow = c(3, 2))
+plot(density(panel$ihs.tariff))
+plot(density(panel$ln.gdp_d, na.rm = TRUE))
+plot(density(panel$ln.gdp_o, na.rm = TRUE))
+plot(density(panel$ln.pop_d, na.rm = TRUE))
+plot(density(panel$ln.pop_o, na.rm = TRUE))
+dev.off()
 
 par(mfrow = c(3, 2))
 plot(density(panel_agg$ihs.tariff))
@@ -251,10 +355,17 @@ dev.off()
 # EXPORT TRANSFORMED DATA   ####
 ## ## ## ## ## ## ## ## ## ## ##
 
+panel_trans <- panel
+save(panel_trans, file = here("Data", "IFF", "panel_trans.Rdata"))
+
 panel_agg_trans <- panel_agg
 save(panel_agg_trans, file = here("Data", "IFF", "panel_agg_trans.Rdata"))
-save(id_vars, dep_vars, grav_vars, secrecy_vars,
+
+save(id_vars, dep_vars, 
+     id_vars_agg, dep_vars_agg,
+     grav_vars, secrecy_vars,
      governance_vars, capcontrol_vars, macro_vars,
+     flow_vars,
      file = here("Results", "vars.Rdata"))
 
-rm(panel_agg, ihs)
+rm(panel, panel_agg, ihs)
