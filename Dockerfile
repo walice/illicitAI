@@ -149,9 +149,9 @@ RUN \
 USER ${NB_USER}
 
 
-##### Jupyter notebook extensions
+##### Jupyter notebook extensions & packages
 RUN \
-    pip install jupyter_contrib_nbextensions && \
+    pip install jupyter_contrib_nbextensions jupyter_nbextensions_configurator && \
     jupyter contrib nbextension install --sys-prefix && \
     jupyter nbextensions_configurator enable --sys-prefix && \
     \
@@ -167,12 +167,22 @@ RUN \
     jupyter nbextension install nbzip --py --sys-prefix && \
     jupyter nbextension enable nbzip --py --sys-prefix && \
     \
-    pip install lightgbm pyarrow feather-format papermill
+    pip install nbdime && \
+    jupyter serverextension enable --py nbdime --sys-prefix && \
+    jupyter nbextension install --py nbdime --sys-prefix && \
+    jupyter nbextension enable --py nbdime --sys-prefix && \
+    \
+    pip install lightgbm pyarrow feather-format papermill \
+    openpyxl pyreadr networkx==2.5 joypy
+    
+RUN conda install -y -c conda-forge cartopy && \
+    conda clean --all -f -y && \
+    fix-permissions "${CONDA_DIR}" && \
+    fix-permissions "/home/${NB_USER}"
 
 
 ##### Jupyter Lab extensions
-RUN jupyter labextension install @jupyterlab/toc --clean && \
-    jupyter labextension install nbdime-jupyterlab
+RUN jupyter labextension install nbdime-jupyterlab
 
 
 ##### Jupyter & RStudio
