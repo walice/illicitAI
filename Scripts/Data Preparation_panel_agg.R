@@ -1,4 +1,4 @@
-# Data Preparation
+# Data Preparation for aggregated panel
 # Alice Lepissier
 # alice.lepissier@gmail.com
 # Chapter 3
@@ -9,7 +9,6 @@
 # Preamble
 # Codes Masterlist
 # Import Panel
-# .. Misinvoicing for reporter-partner-commodity-year
 # .. Misinvoicing for reporter-partner-year
 # .. Generate and transform outcome variables
 # .. Merge with OECD code
@@ -68,24 +67,6 @@ codes <- read_excel(here("Data", "Codes_Masterlist.xlsx"), sheet = "Codes") %>%
 # IMPORT PANEL              ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-# .. Misinvoicing for reporter-partner-commodity-year ####
-load(here("Data", "IFF", "panel_results.Rdata"))
-
-panel <- panel %>%
-  select(c(id, reporter.ISO, partner.ISO, year, commodity.code,
-           reporter, rRegion, rIncome, rDev, rHDI,
-           partner, pRegion, pIncome, pDev, pHDI,
-           section, section.code, SITC.section, SITC.code,
-           Import_value, NetExport_value,
-           pImport_value, pNetExport_value,
-           Imp_IFF, Exp_IFF)) %>%
-  mutate(Tot_IFF = Imp_IFF + Exp_IFF)
-
-sum(is.na(panel$Tot_IFF))
-# No NAs
-# This is net misinvoicing
-
-
 # .. Misinvoicing for reporter-partner-year ####
 load(here("Data", "IFF", "GER_Orig_Dest_Year.Rdata"))
 load(here("Data", "IFF", "Inflow_GER_Orig_Dest_Year.Rdata"))
@@ -122,9 +103,9 @@ panel_agg <- panel_agg %>%
   ungroup %>%
   mutate(Tot_IFF = ifelse(Tot_IFF == 0, NA, Tot_IFF),
          In_Tot_IFF = ifelse(In_Tot_IFF == 0, NA, In_Tot_IFF)) %>%
-  mutate(ln.Imp_IFF = log(abs(Imp_IFF)), # Import over-invoicing
-         ln.Exp_IFF = log(abs(Exp_IFF)), # Export under-invoicing
-         ln.Tot_IFF = log(abs(Tot_IFF)), # Gross outflows
+  mutate(ln.Imp_IFF = log(Imp_IFF), # Import over-invoicing
+         ln.Exp_IFF = log(Exp_IFF), # Export under-invoicing
+         ln.Tot_IFF = log(Tot_IFF), # Gross outflows
          ln.In_Imp_IFF = log(abs(In_Imp_IFF)), # Import under-invoicing
          ln.In_Exp_IFF = log(abs(In_Exp_IFF)), # Export over-invoicing
          ln.In_Tot_IFF = log(abs(In_Tot_IFF))) # Gross inflows
@@ -534,11 +515,6 @@ rm(tariff, tariff_agg)
 # EXPORT CLEAN DATA         ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-panel %>%
-  filter(duplicated(panel$id)) %>%
-  nrow
-# 0
-
 panel_agg %>%
   filter(duplicated(panel_agg$id)) %>%
   nrow
@@ -569,7 +545,6 @@ panel_agg %>%
   nrow
 # 0
 
-save(panel, file = here("Data", "IFF", "panel.Rdata"))
 save(panel_agg, file = here("Data", "IFF", "panel_agg.Rdata"))
 write.csv(panel_agg, file = here("Data", "IFF", "panel_agg.csv"),
           row.names = F)
