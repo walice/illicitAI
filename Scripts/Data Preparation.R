@@ -26,6 +26,7 @@
 # Import WGI
 # .. Interpolate missing data
 # .. Merge WGI with panel
+# Import WDI
 # Import CPI
 # .. Merge CPI with panel
 # Import WITS
@@ -372,6 +373,29 @@ panel_agg <- left_join(panel_agg, WGI %>%
 
 rm(WGI)
                        
+
+
+## ## ## ## ## ## ## ## ## ## ##
+# IMPORT WDI                ####
+## ## ## ## ## ## ## ## ## ## ##
+
+WDI <- WDI(indicator = c("NY.GDP.MKTP.CD",
+                         "NY.GDP.PCAP.CD"), 
+           start = 1999)
+WDI <- left_join(WDI, codes %>%
+                   select(ISO3166.2, ISO3166.3) %>% 
+                   distinct(ISO3166.2, .keep_all = T),
+                 by = c("iso2c" = "ISO3166.2"))
+WDI %>% filter(is.na(ISO3166.3)) %>% distinct(country)
+# Only aggregates remain
+WDI <- WDI %>%
+  filter(!is.na(ISO3166.3)) %>%
+  select(-c(iso2c,country)) %>%
+  rename(GDP = NY.GDP.MKTP.CD,
+         GDPpc = NY.GDP.PCAP.CD)
+
+save(WDI, file = here("Data", "WB", "WDI.Rdata"))
+
 
 
 ## ## ## ## ## ## ## ## ## ## ##
