@@ -518,3 +518,5 @@ panel %>%
 # 0
 
 save(panel, file = here("Data", "IFF", "panel.Rdata"))
+write.csv(panel, file = here("Data", "IFF", "panel.csv"),
+          row.names = F)
