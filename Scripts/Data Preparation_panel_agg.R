@@ -151,15 +151,17 @@ CEPII <- readRDS(file = here("Data", "CEPII", "Gravity_V202102.Rds"))
 # .. Merge CEPII with panel ####
 panel_agg <- left_join(panel_agg, CEPII %>%
                          select(iso3_o, iso3_d, year,
-                                contig, dist,
+                                gdp_o, gdp_d, 
+                                gdp_ppp_d, gdp_ppp_o, 
+                                pop_o, pop_d,
+                                gdpcap_o, gdpcap_d,
+                                dist, contig,
                                 comlang = comlang_off, comcol, col45,
                                 legal_new_o, legal_new_d, comleg_posttrans,
-                                pop_o, pop_d,
-                                gdp_o, gdp_d, gdp_ppp_d, gdp_ppp_o, gdpcap_o, gdpcap_d,
-                                gatt_o, gatt_d, wto_o, wto_d, eu_o, eu_d,
-                                rta,
                                 entry_cost_o, entry_cost_d,
-                                entry_proc_o, entry_proc_d),
+                                entry_proc_o, entry_proc_d,
+                                rta,
+                                gatt_o, gatt_d, wto_o, wto_d, eu_o, eu_d),
                        by = c("reporter.ISO" = "iso3_o",
                               "partner.ISO" = "iso3_d",
                               "year" = "year"))
@@ -387,22 +389,22 @@ rm(WGI)
 # IMPORT WDI                ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-WDI <- WDI(indicator = c("NY.GDP.MKTP.CD",
-                         "NY.GDP.PCAP.CD"), 
-           start = 1999)
-WDI <- left_join(WDI, codes %>%
-                   select(ISO3166.2, ISO3166.3) %>% 
-                   distinct(ISO3166.2, .keep_all = T),
-                 by = c("iso2c" = "ISO3166.2"))
-WDI %>% filter(is.na(ISO3166.3)) %>% distinct(country)
-# Only aggregates remain
-WDI <- WDI %>%
-  filter(!is.na(ISO3166.3)) %>%
-  select(-c(iso2c,country)) %>%
-  rename(GDP = NY.GDP.MKTP.CD,
-         GDPpc = NY.GDP.PCAP.CD)
-
-save(WDI, file = here("Data", "WB", "WDI.Rdata"))
+# WDI <- WDI(indicator = c("NY.GDP.MKTP.CD",
+#                          "NY.GDP.PCAP.CD"), 
+#            start = 1999)
+# WDI <- left_join(WDI, codes %>%
+#                    select(ISO3166.2, ISO3166.3) %>% 
+#                    distinct(ISO3166.2, .keep_all = T),
+#                  by = c("iso2c" = "ISO3166.2"))
+# WDI %>% filter(is.na(ISO3166.3)) %>% distinct(country)
+# # Only aggregates remain
+# WDI <- WDI %>%
+#   filter(!is.na(ISO3166.3)) %>%
+#   select(-c(iso2c,country)) %>%
+#   rename(GDP = NY.GDP.MKTP.CD,
+#          GDPpc = NY.GDP.PCAP.CD)
+# 
+# save(WDI, file = here("Data", "WB", "WDI.Rdata"))
 
 
 
