@@ -57,83 +57,82 @@ id_vars_agg <- c("year",
 id_vars <- c(id_vars_agg, "id_trilateral",
              "commodity.code", "section", "section.code", "SITC.section", "SITC.code")
 
-dep_vars_agg <- c("Imp_IFF", "Exp_IFF", "Tot_IFF",
-                  "ln.Imp_IFF", "ln.Exp_IFF", "ln.Tot_IFF",
-                  "In_Imp_IFF", "In_Exp_IFF", "In_Tot_IFF",
-                  "ln.In_Imp_IFF", "ln.In_Exp_IFF", "ln.In_Tot_IFF",
-                  "Net_Imp_IFF", "Net_Exp_IFF", "Net_IFF")
+dep_vars_agg <- c("Imp_IFF_t", "Exp_IFF_t", "Tot_IFF_t",
+                  "ln.Imp_IFF_t", "ln.Exp_IFF_t", "ln.Tot_IFF_t",
+                  "In_Imp_IFF_t", "In_Exp_IFF_t", "In_Tot_IFF_t",
+                  "ln.In_Imp_IFF_t", "ln.In_Exp_IFF_t", "ln.In_Tot_IFF_t",
+                  "Net_Imp_IFF_t", "Net_Exp_IFF_t", "Net_IFF_t")
 
 dep_vars <- c("Imp_IFF", "Exp_IFF",
               "Net_Tot_IFF", "GER_Tot_IFF", "In_GER_Tot_IFF",
               "ln.GER_Tot_IFF", "ln.In_GER_Tot_IFF")
 
-grav_vars <- c("dist", "contig",
-               "comcol", "col45", "comlang_off",
-               "legal_new_o", "legal_new_d", "comleg_posttrans",
-               "gdp_o", "gdp_d",
+grav_vars <- c("gdp_o", "gdp_d",
                "gdp_ppp_o", "gdp_ppp_d",
                "pop_o", "pop_d",
                "gdpcap_o", "gdpcap_d",
+               "dist", "contig",
+               "comlang", "comcol", "col45", 
+               "legal_new_o", "legal_new_d", "comleg_posttrans",
                "entry_cost_o", "entry_cost_d",
                "entry_proc_o", "entry_proc_d",
                "rta")
 
-capcontrol_vars <- c("ka_o", "kai_o", "kao_o",
-                     "eq_o", "eqi_o", "eqo_o",
-                     "bo_o", "boi_o", "boo_o",
-                     "mm_o", "mmi_o", "mmo_o",
-                     "ci_o", "cii_o", "cio_o",
-                     "de_o", "dei_o", "deo_o",
-                     "cc_o", "cci_o", "cco_o",
-                     "fc_o", "fci_o", "fco_o",
-                     "gs_o", "gsi_o", "gso_o",
-                     "di_o", "dii_o", "dio_o",
-                     "re_o", "rei_o", "reo_o",
-                     "ka_d", "kai_d", "kao_d",
-                     "eq_d", "eqi_d", "eqo_d",
-                     "bo_d", "boi_d", "boo_d",
-                     "mm_d", "mmi_d", "mmo_d",
-                     "ci_d", "cii_d", "cio_d",
-                     "de_d", "dei_d", "deo_d",
-                     "cc_d", "cci_d", "cco_d",
-                     "fc_d", "fci_d", "fco_d",
-                     "gs_d", "gsi_d", "gso_d",
-                     "di_d", "dii_d", "dio_d",
-                     "re_d", "rei_d", "reo_d")
-
-macro_vars <- c("tariff")
-
-secrecy_vars <- c("rSecrecyScore", "pSecrecyScore",
-                  "rFSI.rank", "pFSI.rank",
-                  "KFSI13", "KFSI17", "KFSI20")
-
-governance_vars <- c("FATF",
-                     "rCPI", "pCPI",
+governance_vars <- c("rCPI", "pCPI",
                      "rCorrCont", "pCorrCont",
                      "rRegQual", "pRegQual",
                      "rRuleLaw", "pRuleLaw")
 
+fintegrity_vars <- c("rSecrecyScore", "pSecrecyScore",
+                     "rFSI.rank", "pFSI.rank",
+                     "rKFSI13", "pKFSI13", 
+                     "rKFSI17", "pKFSI17", 
+                     "rKFSI20", "pKFSI20",
+                     "rFATF", "pFATF")
+
+regulenv_vars <- c("tariff",
+                   "ka_o", "kai_o", "kao_o",
+                   "eq_o", "eqi_o", "eqo_o",
+                   "bo_o", "boi_o", "boo_o",
+                   "mm_o", "mmi_o", "mmo_o",
+                   "ci_o", "cii_o", "cio_o",
+                   "de_o", "dei_o", "deo_o",
+                   "cc_o", "cci_o", "cco_o",
+                   "fc_o", "fci_o", "fco_o",
+                   "gs_o", "gsi_o", "gso_o",
+                   "di_o", "dii_o", "dio_o",
+                   "re_o", "rei_o", "reo_o",
+                   "ka_d", "kai_d", "kao_d",
+                   "eq_d", "eqi_d", "eqo_d",
+                   "bo_d", "boi_d", "boo_d",
+                   "mm_d", "mmi_d", "mmo_d",
+                   "ci_d", "cii_d", "cio_d",
+                   "de_d", "dei_d", "deo_d",
+                   "cc_d", "cci_d", "cco_d",
+                   "fc_d", "fci_d", "fco_d",
+                   "gs_d", "gsi_d", "gso_d",
+                   "di_d", "dii_d", "dio_d",
+                   "re_d", "rei_d", "reo_d")
+
+
 flow_vars <- c("Import_value", "NetExport_value",
                "pImport_value", "pNetExport_value")
 
-(length(id_vars_agg) + length(dep_vars_agg) + length(grav_vars) + length(capcontrol_vars) + 
-    length(macro_vars) + length(secrecy_vars) + length(governance_vars)) == ncol(panel_agg)
+(length(id_vars_agg) + length(dep_vars_agg) + length(grav_vars) + length(governance_vars)
+  + length(fintegrity_vars) + length(regulenv_vars) ) == ncol(panel_agg)
 # TRUE
 
-(length(id_vars) + length(dep_vars) + length(grav_vars) + length(capcontrol_vars) + 
-    length(macro_vars) + length(secrecy_vars) + length(governance_vars) + length(flow_vars)) == ncol(panel)
-# TRUE
+id_vars_agg %in% names(panel_agg)
+dep_vars_agg %in% names(panel_agg)
+grav_vars %in% names(panel_agg)
+governance_vars %in% names(panel_agg)
+fintegrity_vars %in% names(panel_agg)
+regulenv_vars %in% names(panel_agg)
+flow_vars %in% names(panel_agg)
 
-ncol(panel_agg[, id_vars_agg])
-ncol(panel[, id_vars])
-ncol(panel_agg[, dep_vars_agg])
-ncol(panel[, dep_vars])
-ncol(panel_agg[, grav_vars])
-ncol(panel_agg[, capcontrol_vars])
-ncol(panel_agg[, macro_vars])
-ncol(panel_agg[, secrecy_vars])
-ncol(panel_agg[, governance_vars])
-ncol(panel[, flow_vars])
+(length(id_vars) + length(dep_vars) + length(grav_vars) + length(governance_vars)
+  + length(fintegrity_vars) + length(regulenv_vars) + length(flow_vars)) == ncol(panel)
+# TRUE
 
 
 
@@ -197,16 +196,16 @@ panel <- panel %>%
 summary(panel_agg)
 
 panel_agg %>%
-  filter(is.na(Imp_IFF) & is.na(Exp_IFF) & is.na(Tot_IFF) &
-           is.na(In_Imp_IFF) & is.na(In_Exp_IFF) & is.na(In_Tot_IFF)) %>%
+  filter(is.na(Imp_IFF_t) & is.na(Exp_IFF_t) & is.na(Tot_IFF_t) &
+           is.na(In_Imp_IFF_t) & is.na(In_Exp_IFF_t) & is.na(In_Tot_IFF_t)) %>%
   nrow
 # 0
 
 (panel_agg %>%
-    filter(complete.cases(Imp_IFF, Exp_IFF, Tot_IFF,
-                          In_Imp_IFF, In_Exp_IFF, In_Tot_IFF,
-                          ln.Imp_IFF, ln.Exp_IFF, ln.Tot_IFF,
-                          ln.In_Imp_IFF, ln.In_Exp_IFF, ln.In_Tot_IFF)) %>%
+    filter(complete.cases(Imp_IFF_t, Exp_IFF_t, Tot_IFF_t,
+                          In_Imp_IFF_t, In_Exp_IFF_t, In_Tot_IFF_t,
+                          ln.Imp_IFF_t, ln.Exp_IFF_t, ln.Tot_IFF_t,
+                          ln.In_Imp_IFF_t, ln.In_Exp_IFF_t, ln.In_Tot_IFF_t)) %>%
     nrow) / nrow(panel_agg)*100
 # 69.75808
 
@@ -225,8 +224,8 @@ panel_agg %>%
 
 panel_agg <- panel_agg %>%
   select(all_of(id_vars_agg), all_of(dep_vars_agg),
-         all_of(grav_vars), all_of(governance_vars), all_of(secrecy_vars),
-         all_of(macro_vars), all_of(capcontrol_vars))
+         all_of(grav_vars), all_of(governance_vars), 
+         all_of(fintegrity_vars), all_of(regulenv_vars))
 
 
 
@@ -270,9 +269,9 @@ boxplot(panel_agg$pFSI.rank)
 dev.off()
 
 par(mfrow = c(3, 1))
-hist(panel_agg$KFSI13)
-hist(panel_agg$KFSI17)
-hist(panel_agg$KFSI20)
+hist(panel_agg$rKFSI13)
+hist(panel_agg$rKFSI17)
+hist(panel_agg$rKFSI20)
 dev.off()
 
 
@@ -283,10 +282,6 @@ ihs <- function(x){
 }
 
 # Check whether there are zeros in the data
-summary(log(panel$tariff))
-# Need inverse hyperbolic sine transformation
-summary(log(panel_agg$tariff))
-# Need inverse hyperbolic sine transformation
 summary(log(panel_agg$gdp_o))
 # Fine to log
 summary(log(panel_agg$gdp_d))
@@ -303,28 +298,32 @@ summary(log(panel_agg$entry_cost_o))
 # Need inverse hyperbolic sine transformation
 summary(log(panel_agg$entry_cost_d))
 # Need inverse hyperbolic sine transformation
+summary(log(panel$tariff))
+# Need inverse hyperbolic sine transformation
+summary(log(panel_agg$tariff))
+# Need inverse hyperbolic sine transformation
 
 panel <- panel %>%
-  mutate(ihs.tariff = ihs(tariff),
-         ln.gdp_o = log(gdp_o),
+  mutate(ln.gdp_o = log(gdp_o),
          ln.gdp_d = log(gdp_d),
          ln.pop_o = log(pop_o),
          ln.pop_d = log(pop_d),
          ln.gdpcap_o = log(gdpcap_o),
          ln.gdpcap_d = log(gdpcap_d),
          ihs.entry_cost_o = ihs(entry_cost_o),
-         ihs.entry_cost_d = ihs(entry_cost_d))
+         ihs.entry_cost_d = ihs(entry_cost_d),
+         ihs.tariff = ihs(tariff),)
 
 panel_agg <- panel_agg %>%
-  mutate(ihs.tariff = ihs(tariff),
-         ln.gdp_o = log(gdp_o),
+  mutate(ln.gdp_o = log(gdp_o),
          ln.gdp_d = log(gdp_d),
          ln.pop_o = log(pop_o),
          ln.pop_d = log(pop_d),
          ln.gdpcap_o = log(gdpcap_o),
          ln.gdpcap_d = log(gdpcap_d),
          ihs.entry_cost_o = ihs(entry_cost_o),
-         ihs.entry_cost_d = ihs(entry_cost_d))
+         ihs.entry_cost_d = ihs(entry_cost_d),
+         ihs.tariff = ihs(tariff))
 
 par(mfrow = c(3, 2))
 plot(density(panel$ihs.tariff))
@@ -363,8 +362,8 @@ save(panel_agg_trans, file = here("Data", "IFF", "panel_agg_trans.Rdata"))
 
 save(id_vars, dep_vars, 
      id_vars_agg, dep_vars_agg,
-     grav_vars, secrecy_vars,
-     governance_vars, capcontrol_vars, macro_vars,
+     grav_vars, governance_vars,
+     fintegrity_vars, regulenv_vars,
      flow_vars,
      file = here("Results", "vars.Rdata"))
 
