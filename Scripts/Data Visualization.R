@@ -143,8 +143,8 @@ preds.LM.train_agg <- arrow::read_feather("Results/preds.LM.train_agg.feather") 
   rename(preds_LM_train_agg = "0")
 preds.lightGBM.train_agg <- arrow::read_feather("Results/preds.lightGBM.train_agg.feather") %>%
   rename(preds_lightGBM_train_agg = "0")
-preds.NN.train_agg <- arrow::read_feather("Results/preds.NN.train_agg.feather") %>%
-  rename(preds_NN_train_agg = "0")
+# preds.NN.train_agg <- arrow::read_feather("Results/preds.NN.train_agg.feather") %>%
+#   rename(preds_NN_train_agg = "0")
 preds.SVM.train_agg <- arrow::read_feather("Results/preds.SVM.train_agg.feather") %>%
   rename(preds_SVM_train_agg = "0")
 preds.RF.train_agg <- arrow::read_feather("Results/preds.RF.train_agg.feather") %>%
@@ -154,24 +154,29 @@ preds.LM.test_agg <- arrow::read_feather("Results/preds.LM.test_agg.feather") %>
   rename(preds_LM_test_agg = "0")
 preds.lightGBM.test_agg <- arrow::read_feather("Results/preds.lightGBM.test_agg.feather") %>%
   rename(preds_lightGBM_test_agg = "0")
-preds.NN.test_agg <- arrow::read_feather("Results/preds.NN.test_agg.feather") %>%
-  rename(preds_NN_test_agg = "0")
+# preds.NN.test_agg <- arrow::read_feather("Results/preds.NN.test_agg.feather") %>%
+#   rename(preds_NN_test_agg = "0")
 preds.SVM.test_agg <- arrow::read_feather("Results/preds.SVM.test_agg.feather") %>%
   rename(preds_SVM_test_agg = "0")
 preds.RF.test_agg <- arrow::read_feather("Results/preds.RF.test_agg.feather") %>%
   rename(preds_RF_test_agg = "0")
 
 train_agg_results <- bind_cols(train_agg_smp,
-                               preds.LM.train_agg, preds.lightGBM.train_agg, preds.NN.train_agg,
-                               preds.SVM.train_agg, preds.RF.train_agg)
+                               preds.LM.train_agg, 
+                               preds.lightGBM.train_agg,
+                               preds.SVM.train_agg, 
+                               preds.RF.train_agg)
 
 test_agg_results <- bind_cols(test_agg_smp,
-                              preds.LM.test_agg, preds.lightGBM.test_agg, preds.NN.test_agg,
-                              preds.SVM.test_agg, preds.RF.test_agg)
+                              preds.LM.test_agg, 
+                              preds.lightGBM.test_agg,
+                              preds.SVM.test_agg, 
+                              preds.RF.test_agg)
 
 results_agg <- bind_rows(train_agg_results, test_agg_results)
 
 results_agg <- results_agg %>%
+  mutate(Tot_IFF_t = exp(ln.Tot_IFF_t)) %>%
   mutate_at(vars(ends_with("train_agg")),
             ~exp(.)) %>%
   mutate_at(vars(ends_with("test_agg")),
@@ -180,26 +185,49 @@ results_agg <- results_agg %>%
 results_agg <- results_agg %>%
   mutate(preds_LM = ifelse(year <= 2014, preds_LM_train_agg, preds_LM_test_agg),
          preds_lightGBM = ifelse(year <= 2014, preds_lightGBM_train_agg, preds_lightGBM_test_agg),
-         preds_NN = ifelse(year <= 2014, preds_NN_train_agg, preds_NN_test_agg),
          preds_SVM = ifelse(year <= 2014, preds_SVM_train_agg, preds_SVM_test_agg),
          preds_RF = ifelse(year <= 2014, preds_RF_train_agg, preds_RF_test_agg))
+         # preds_NN = ifelse(year <= 2014, preds_NN_train_agg, preds_NN_test_agg))
 
 viz <- results_agg %>%
-  pivot_longer(c("ln.Tot_IFF", "Tot_IFF",
-                 "preds_LM", "preds_lightGBM", "preds_NN",
-                 "preds_SVM", "preds_RF")) %>%
+  pivot_longer(c("Tot_IFF_t",
+                 "preds_LM", 
+                 "preds_lightGBM",
+                 "preds_SVM", 
+                 "preds_RF")) %>%
+               # , "preds_NN"))
   select(c("reporter.ISO", "partner.ISO",
            "year", "name", "value"))
 
-ggplot(viz %>%
-         filter(name != "ln.Tot_IFF") %>%
-         filter(name != "preds_LM") %>%
+out_viz <- bind_rows(out_viz_train %>%
+                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_trn, year),
+                 out_viz_test %>%
+                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_tst, year)) %>%
+  mutate_at(vars(ends_with("value")),
+            ~exp(.)) %>%
+  pivot_longer(c("true.value", "predicted.value"))
+  
+
+g <- ggplot(viz %>%
+         filter(name != "preds_SVM") %>%
          group_by(year, name) %>%
          summarize(value = sum(value)) %>%
          ungroup()) +
   geom_line(aes(x = year,
-                y = value / 10^9,
-                col = name))
+                y = value / 10^6,
+                col = name)) +
+  geom_line(data = out_viz %>%
+              group_by(year, name) %>%
+              summarize(value = sum(value)) %>%
+              ungroup(),
+            aes(x = year,
+                y = value / 10^6,
+                col = name)) +
+  labs(x = "Year",
+       y = "Illicit flow in billion USD")
+ggsave(g,
+       file = here("Figures", "preds_fullmod_all.png"),
+       width = 6, height = 5, units = "in")
 
 reporters <- c("USA", "CHN", "GBR",
                "CHE", "FRA", "SGP",
@@ -209,23 +237,23 @@ for (r in 1:length(reporters)){
                 filter(reporter.ISO == reporters[r]) %>%
                 #filter(partner.ISO == "CHN") %>%
                 filter(name != "ln.Tot_IFF") %>%
-                filter(name != "preds_LM") %>%
+                # filter(name != "preds_LM") %>%
                 group_by(year, name) %>%
                 summarize(value = sum(value)) %>%
                 ungroup()) +
     geom_line(aes(x = year,
-                  y = value / 10^9,
+                  y = value / 10^6,
                   col = name))
-  ggsave(g,
-         file = (here("Figures", paste0("preds_", reporters[r], ".png"))),
-         width = 6, height = 5, units = "in")
+  # ggsave(g,
+         # file = (here("Figures", paste0("preds_", reporters[r], ".png"))),
+         # width = 6, height = 5, units = "in")
 }
 
 ggplot(viz %>%
               filter(reporter.ISO == "USA") %>%
               filter(partner.ISO == "CHN") %>%
               filter(name != "ln.Tot_IFF") %>%
-              filter(name != "preds_LM") %>%
+              # filter(name != "preds_LM") %>%
               group_by(year, name) %>%
               summarize(value = sum(value)) %>%
               ungroup()) +

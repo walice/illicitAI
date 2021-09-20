@@ -28,6 +28,9 @@ library(here)
 # source(here("Scripts", "Data Pre-Processing.R"))
 library(caret)
 library(kableExtra)
+# library(ggpubr)
+# install.packages("rstatix")
+# install.packages("ggpubr")
 library(lfe)
 # library(parsnip)
 library(plm)
@@ -59,7 +62,9 @@ test.panel <- panel_trans %>%
   filter(year > 2014)
 
 nrow(train.panel)
+# 1934438
 nrow(test.panel)
+# 512241
 nrow(train.panel) + nrow(test.panel) == nrow(panel_trans)
 # TRUE
 
@@ -77,7 +82,9 @@ test.panel_agg <- panel_agg_trans %>%
   filter(year > 2014)
 
 nrow(train.panel_agg)
+# 81249
 nrow(test.panel_agg)
+# 18910
 nrow(train.panel_agg) + nrow(test.panel_agg) == nrow(panel_agg_trans)
 # TRUE
 
@@ -144,7 +151,6 @@ pred <- function(model, data, DV, IVs,
 calc_RMSE <- function(data, true.value, predicted.value, IVs){
   data <- subset_complete(data, true.value, IVs)
   true.value <- data[[true.value]]
-  # MSE <- mean((predicted.value - true.value)^2)
   RMSE <- sqrt(mean((predicted.value - true.value)^2))
   return(RMSE)
 }
@@ -171,10 +177,59 @@ calc_dollar_MSE <- function(data, true.value, predicted.value, IVs){
 }
 
 
-# .. Baseline specifications (gravity variables) ####
+# .. Baseline specification (Walker-type model) ####
+grav_vars <- c("ln.gdp_o", "ln.gdp_d",
+               "comlang", "comcol",
+               "rta")
+out_governance_vars <- c("rCorrCont", "pCorrCont",
+                         "pRegQual")
+in_governance_vars <- c("rCorrCont", "pCorrCont",
+                        "rRegQual")
+out_secrecy_vars <- c("pSecrecyScore",
+                      "rFATF", "pFATF")
+in_secrecy_vars <- c("rSecrecyScore",
+                     "rFATF", "pFATF")
+out_regul_vars <- c("ihs.tariff",
+                    "kao_o",
+                    "kai_d")
+in_regul_vars <- c("ihs.tariff",
+                   "kai_o",
+                   "kao_d")
+out_vars <- c(grav_vars, out_governance_vars, out_secrecy_vars, out_regul_vars)
+in_vars <- c(grav_vars, in_governance_vars, in_secrecy_vars, in_regul_vars)
+
+out_trn <- subset_complete(train.panel_agg, "ln.Tot_IFF_t", out_vars)
+in_trn <- subset_complete(train.panel_agg, "ln.In_Tot_IFF_t", in_vars)
+
+out_tst <- subset_complete(test.panel_agg, "ln.Tot_IFF_t", out_vars)
+in_tst <- subset_complete(test.panel_agg, "ln.In_Tot_IFF_t", in_vars)
+
+out_fit <- fit_lm(train.panel_agg, "ln.Tot_IFF_t", out_vars)
+in_fit <- fit_lm(train.panel_agg, "ln.In_Tot_IFF_t", in_vars)
+
+out_preds_trn <- ln.pred(out_fit, out_trn, "ln.Tot_IFF_t", out_vars)
+in_preds_trn <- ln.pred(in_fit, in_trn, "ln.In_Tot_IFF_t", in_vars)
+
+out_preds_tst <- ln.pred(out_fit, out_tst, "ln.Tot_IFF_t", out_vars)
+in_preds_tst <- ln.pred(in_fit, in_tst, "ln.In_Tot_IFF_t", in_vars)
+
+stargazer(out_fit, in_fit, type = "text")
+stargazer(out_fit, in_fit, type = "latex")
+
+calc_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars)
+# 5.193806
+calc_dollar_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars) / 10^9
+# 9725.067
+calc_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars)
+# 6.205944
+calc_dollar_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars) / 10^9
+# 12162.63
+
+
+# .. Full specification (all predictors) ####
 grav_vars <- c("ln.gdp_o", "ln.gdp_d", "ln.pop_o", "ln.pop_d",
                "dist", "contig", 
-               "comlang_off", "comcol", "col45",
+               "comlang", "comcol", "col45",
                "ihs.entry_cost_o", "ihs.entry_cost_d", "rta")
 governance_vars <- c("rCorrCont", "pCorrCont",
                      "rRegQual", "pRegQual",
@@ -198,9 +253,9 @@ vars <- c(grav_vars, governance_vars, secrecy_vars, regul_vars)
 depvars <- c("ln.Imp_IFF_t", "ln.Exp_IFF_t", "ln.Tot_IFF_t",
              "ln.In_Imp_IFF_t", "ln.In_Exp_IFF_t", "ln.In_Tot_IFF_t")
 
-store.RMSE <- matrix(NA, nrow = 2, ncol = length(depvars),
-                     dimnames = list(c("RMSE", "dollar.RMSE"),
-                                     depvars))
+store.MSE <- matrix(NA, nrow = 2, ncol = length(depvars),
+                    dimnames = list(c("MSE", "dollar.MSE"),
+                                    depvars))
 
 store.preds <- list()
 store.preds$ln.preds <- vector(mode = "list", length = length(depvars))
@@ -217,15 +272,20 @@ for(v in depvars){
   store.fits[[counter]] <- fit_lm(train.panel_agg, v, vars)
   store.preds[["ln.preds"]][[counter]] <- ln.pred(store.fits[[counter]], test.panel_agg, v, vars)
   store.preds[["preds"]][[counter]] <- pred(store.fits[[counter]], test.panel_agg, v, vars)
-  store.RMSE["RMSE", counter] <- calc_RMSE(test.panel_agg, v, store.preds[["ln.preds"]][[counter]], vars)
-  store.RMSE["dollar.RMSE", counter] <- calc_dollar_RMSE(test.panel_agg, v, store.preds[["ln.preds"]][[counter]], vars) / 10^9
+  store.MSE["MSE", counter] <- calc_MSE(test.panel_agg, v, store.preds[["ln.preds"]][[counter]], vars)
+  store.MSE["dollar.MSE", counter] <- calc_dollar_MSE(test.panel_agg, v, store.preds[["ln.preds"]][[counter]], vars) / 10^9
 }
 
 stargazer(store.fits, type = "text")
-kable(t(store.RMSE["RMSE",]),
+stargazer(store.fits, type = "latex")
+kable(t(store.MSE["MSE",]),
       format = "rst")
-kable(t(store.RMSE["dollar.RMSE",]),
+kable(t(store.MSE["dollar.MSE",]),
       format = "rst")
+kable(t(store.MSE["MSE",]),
+      format = "latex")
+kable(t(store.MSE["dollar.MSE",]),
+      format = "latex")
 
 
 
@@ -249,9 +309,9 @@ ggplot(viz_test %>%
                  y = predicted.value)) +
   geom_abline(slope = 1)
 
-viz_test <- subset_complete(test.panel_agg, "Tot_IFF", vars) %>%
-  rename(true.value = "Tot_IFF") %>%
-  bind_cols(data.frame(predicted.value = store.preds[["preds"]][["Tot_IFF"]]))
+viz_test <- subset_complete(test.panel_agg, "ln.Tot_IFF_t", vars) %>%
+  rename(true.value = "ln.Tot_IFF_t") %>%
+  bind_cols(data.frame(predicted.value = store.preds$ln.preds$ln.Tot_IFF_t))
 
 ggplot(viz_test %>%
          group_by(year) %>%
@@ -265,16 +325,15 @@ ggplot(viz_test %>%
                 y = predicted.value),
             col = "blue")
 
-data <- subset_complete(train.panel_agg, "ln.Tot_IFF", vars)
-preds <- pred(store.fits$ln.Tot_IFF, data, "ln.Tot_IFF", vars)
-data$Tot_IFF <- exp(data$ln.Tot_IFF)
+data <- subset_complete(train.panel_agg, "ln.Tot_IFF_t", vars)
+preds <- ln.pred(store.fits$ln.Tot_IFF_t, data, "ln.Tot_IFF_t", vars)
 
 viz_train <- bind_cols(data,
                        data.frame(preds))
 
 ggplot(viz_train %>%
          group_by(year) %>%
-         summarize(true.value = sum(Tot_IFF, na.rm = TRUE),
+         summarize(true.value = sum(ln.Tot_IFF_t, na.rm = TRUE),
                    predicted.value = sum(preds, na.rm = TRUE)) %>%
          ungroup()) +
   geom_line(aes(x = year,
@@ -285,27 +344,81 @@ ggplot(viz_train %>%
             col = "blue")
 
 viz <- bind_rows(viz_train %>%
-                   select(true.value = Tot_IFF, predicted.value = preds, year),
+                   select(true.value = ln.Tot_IFF_t, predicted.value = preds, year),
                  viz_test %>%
                    select(true.value, predicted.value, year))
-ggplot(viz %>%
+g <- ggplot(viz %>%
          group_by(year) %>%
          summarize(true.value = sum(true.value, na.rm = TRUE) / 10^9,
                    predicted.value = sum(predicted.value, na.rm = TRUE) / 10^9) %>%
-         ungroup()) +
+         ungroup() %>%
+         pivot_longer(c(true.value, predicted.value))) +
   geom_line(aes(x = year,
-                y = true.value),
-            col = "red") +
-  geom_line(aes(x = year,
-                y = predicted.value),
-            col = "blue")
+                y = value,
+                col = name))
+ggsave(g,
+       file = here("Figures", "log_preds_fullmod_LM.png"),
+       width = 6, height = 5, units = "in")
 
-check <- viz %>%
-  group_by(year) %>%
-  summarize(true.value = sum(true.value, na.rm = TRUE),
-            predicted.value = sum(predicted.value, na.rm = TRUE)) %>%
-  ungroup() %>%
-  mutate(true.value_bn = true.value / 10^9,
-         predicted.value_bn = predicted.value / 10^9) %>%
-  arrange(year)
+# out model
+out_viz_train <- bind_cols(out_trn,
+                       data.frame(out_preds_trn))
+out_viz_test <- bind_cols(out_tst,
+                      data.frame(out_preds_tst))
+
+viz <- bind_rows(out_viz_train %>%
+                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_trn, year),
+                 out_viz_test %>%
+                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_tst, year))
+
+g1 <- ggplot(viz %>%
+              mutate_at(vars(ends_with("value")),
+                        ~exp(.)) %>%
+              group_by(year) %>%
+              summarize(true.value = sum(true.value, na.rm = TRUE) / 10^6,
+                        predicted.value = sum(predicted.value, na.rm = TRUE) / 10^6) %>%
+              ungroup() %>%
+              pivot_longer(c(true.value, predicted.value))) +
+  geom_line(aes(x = year,
+                y = value,
+                col = name)) +
+  labs(x = "Year",
+       y = "Illicit flow in billion USD",
+       title = "Predictions of theoretically guided linear model",
+       subtitle = "For gross outflows")
+g1
+ggsave(g1,
+       file = here("Figures", "dollar_preds_baseLMmod_out.png"),
+       width = 6, height = 5, units = "in")
+
+# in model
+in_viz_train <- bind_cols(in_trn,
+                           data.frame(in_preds_trn))
+in_viz_test <- bind_cols(in_tst,
+                          data.frame(in_preds_tst))
+
+viz <- bind_rows(in_viz_train %>%
+                   select(true.value = ln.In_Tot_IFF_t, predicted.value = in_preds_trn, year),
+                 in_viz_test %>%
+                   select(true.value = ln.In_Tot_IFF_t, predicted.value = in_preds_tst, year))
+
+g2 <- ggplot(viz %>%
+              mutate_at(vars(ends_with("value")),
+                        ~exp(.)) %>%
+              group_by(year) %>%
+              summarize(true.value = sum(true.value, na.rm = TRUE) / 10^6,
+                        predicted.value = sum(predicted.value, na.rm = TRUE) / 10^6) %>%
+              ungroup() %>%
+              pivot_longer(c(true.value, predicted.value))) +
+  geom_line(aes(x = year,
+                y = value,
+                col = name)) +
+  labs(x = "Year",
+       y = "Illicit flow in billion USD",
+       title = "Predictions of theoretically guided linear model",
+       subtitle = "For gross inflows")
+ggsave(g2,
+       file = here("Figures", "dollar_preds_baseLMmod_in.png"),
+       width = 6, height = 5, units = "in")
+
 
