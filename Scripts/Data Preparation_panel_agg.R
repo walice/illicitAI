@@ -96,13 +96,15 @@ rm(GER_Orig_Dest_Year, Inflow_GER_Orig_Dest_Year, Net_Orig_Dest_Year)
 # .. Generate and transform outcome variables ####
 panel_agg <- panel_agg %>%
   rowwise() %>% 
-  mutate(Imp_IFF_t = Imp_IFF / 10^3,
+  mutate(Net_Imp_IFF_t = Net_Imp_IFF / 10^3,
+         Net_Exp_IFF_t = Net_Exp_IFF / 10^3,
+         Imp_IFF_t = Imp_IFF / 10^3,
          Exp_IFF_t = Exp_IFF / 10^3,
          In_Imp_IFF_t = In_Imp_IFF / 10^3,
          In_Exp_IFF_t = In_Exp_IFF / 10^3,
          Tot_IFF_t = sum(Imp_IFF, Exp_IFF, na.rm = TRUE),
          In_Tot_IFF_t = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE),
-         Net_IFF_t = sum(Net_Imp_IFF, Net_Exp_IFF, na.rm = TRUE) /10^3) %>%
+         Net_IFF_t = sum(Net_Imp_IFF, Net_Exp_IFF, na.rm = TRUE)) %>%
   ungroup %>%
   mutate(Tot_IFF_t = ifelse(Tot_IFF_t == 0, NA, Tot_IFF_t),
          In_Tot_IFF_t = ifelse(In_Tot_IFF_t == 0, NA, In_Tot_IFF_t)) %>%
