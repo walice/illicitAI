@@ -9,12 +9,11 @@
 # Preamble
 # Import results
 # Set Up Samples
-# .. Create design matrix with dummies
-# .. Create training and test set
+# .. For disaggregated panel
+# .. For aggregated panel
 # OLS Gravity Models
 # .. Functions
-# .. Baseline specifications (gravity models)
-# .. Add country FE
+# .. Baseline specification (Walker TBML gravity model)
 # Train and Test
 # .. Visualize predictions
 
@@ -43,6 +42,7 @@ library(tidyverse)
 # IMPORT RESULTS            ####
 ## ## ## ## ## ## ## ## ## ## ##
 
+load(here("Data", "IFF", "panel_trans.Rdata"))
 load(here("Data", "IFF", "panel_agg_trans.Rdata"))
 load(here("Results", "vars.Rdata"))
 
@@ -52,9 +52,25 @@ load(here("Results", "vars.Rdata"))
 # SET UP SAMPLES            ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-# .. Create design matrix with dummies ####
+# .. For disaggregated panel ####
+train.panel <- panel_trans %>%
+  filter(year <= 2014)
+test.panel <- panel_trans %>%
+  filter(year > 2014)
 
-# .. Create training and test set ####
+nrow(train.panel)
+nrow(test.panel)
+nrow(train.panel) + nrow(test.panel) == nrow(panel_trans)
+# TRUE
+
+round(nrow(test.panel) / nrow(panel_trans), 2)
+# 0.21
+
+write_feather(train.panel, here("Results", "train.feather"))
+write_feather(test.panel, here("Results", "test.feather"))
+
+
+# .. For aggregated panel ####
 train.panel_agg <- panel_agg_trans %>%
   filter(year <= 2014)
 test.panel_agg <- panel_agg_trans %>%
@@ -68,8 +84,23 @@ nrow(train.panel_agg) + nrow(test.panel_agg) == nrow(panel_agg_trans)
 round(nrow(test.panel_agg) / nrow(panel_agg_trans), 2)
 # 0.19
 
-write_feather(train.panel_agg, here("Results", "train_smp.feather"))
-write_feather(test.panel_agg, here("Results", "test_smp.feather"))
+train.panel_agg %>% distinct(reporter.ISO) %>% nrow
+# 166
+train.panel_agg %>% distinct(partner.ISO) %>% nrow
+# 166
+
+test.panel_agg %>% distinct(reporter.ISO) %>% nrow
+# 147
+test.panel_agg %>% distinct(partner.ISO) %>% nrow
+# 147
+
+train.panel_agg %>% distinct(year)
+# 2000-2014
+test.panel_agg %>% distinct(year)
+# 2015-2018
+
+write_feather(train.panel_agg, here("Results", "train_agg.feather"))
+write_feather(test.panel_agg, here("Results", "test_agg.feather"))
 
 
 
@@ -118,6 +149,13 @@ calc_RMSE <- function(data, true.value, predicted.value, IVs){
   return(RMSE)
 }
 
+calc_MSE <- function(data, true.value, predicted.value, IVs){
+  data <- subset_complete(data, true.value, IVs)
+  true.value <- data[[true.value]]
+  MSE <- mean((predicted.value - true.value)^2)
+  return(MSE)
+}
+
 calc_dollar_RMSE <- function(data, true.value, predicted.value, IVs){
   data <- subset_complete(data, true.value, IVs)
   true.value <- data[[true.value]]
@@ -125,28 +163,40 @@ calc_dollar_RMSE <- function(data, true.value, predicted.value, IVs){
   return(dollar.RMSE)
 }
 
+calc_dollar_MSE <- function(data, true.value, predicted.value, IVs){
+  data <- subset_complete(data, true.value, IVs)
+  true.value <- data[[true.value]]
+  dollar.MSE <- mean((exp(predicted.value) - exp(true.value))^2)
+  return(dollar.MSE)
+}
+
 
 # .. Baseline specifications (gravity variables) ####
-grav_vars <- c("dist", "contig", "comcol", "col45", "comlang_off", "comleg_posttrans",
-               "ln.gdp_o", "ln.gdp_d", "ln.pop_o", "ln.pop_d",
+grav_vars <- c("ln.gdp_o", "ln.gdp_d", "ln.pop_o", "ln.pop_d",
+               "dist", "contig", 
+               "comlang_off", "comcol", "col45",
                "ihs.entry_cost_o", "ihs.entry_cost_d", "rta")
-vars <- c(grav_vars, "ihs.tariff")
-vars <- c(vars, "rSecrecyScore", "pSecrecyScore")
-governance_vars <- governance_vars[!governance_vars %in% c("rCPI", "pCPI")]
-vars <- c(vars, governance_vars)
+governance_vars <- c("rCorrCont", "pCorrCont",
+                     "rRegQual", "pRegQual",
+                     "rRuleLaw", "pRuleLaw")
+secrecy_vars <- c("rSecrecyScore", "pSecrecyScore",
+                  "rFSI.rank", "pFSI.rank",
+                  "rKFSI13", "rKFSI17", "rKFSI20",
+                  "pKFSI13", "pKFSI17", "pKFSI20",
+                  "rFATF", "pFATF")
+regul_vars <- c("ihs.tariff",
+                "kai_o", "kai_d",
+                "kao_o", "kao_d",
+                "cc_o", "cc_d",
+                "cci_o", "cci_d",
+                "cco_o", "cco_d",
+                "di_o", "di_d",
+                "dii_o", "dii_d",
+                "dio_o", "dio_d")
+vars <- c(grav_vars, governance_vars, secrecy_vars, regul_vars)
 
-# new_vars <- c("kao_o", "kai_d")
-# new_vars <- c("kai_o", "kao_d")
-# new_vars <- c("ka_o", "eq_o", "bo_o", "mm_o", "ci_o", "de_o", "cc_o", "fc_o", "gs_o", "di_o", "re_o")
-# vars <- c(vars, new_vars)
-# new_vars <- c("ka_d", "eq_d", "bo_d", "mm_d", "ci_d", "de_d", "cc_d", "fc_d", "gs_d", "di_d", "re_d")
-# vars <- c(vars, new_vars)
-new_vars <- c("kai_o", "kao_o", "kai_d", "kao_d")
-vars <- c(vars, new_vars)
-vars
-
-depvars <- c("ln.Imp_IFF", "ln.Exp_IFF", "ln.Tot_IFF",
-             "ln.In_Imp_IFF", "ln.In_Exp_IFF", "ln.In_Tot_IFF")
+depvars <- c("ln.Imp_IFF_t", "ln.Exp_IFF_t", "ln.Tot_IFF_t",
+             "ln.In_Imp_IFF_t", "ln.In_Exp_IFF_t", "ln.In_Tot_IFF_t")
 
 store.RMSE <- matrix(NA, nrow = 2, ncol = length(depvars),
                      dimnames = list(c("RMSE", "dollar.RMSE"),
@@ -176,61 +226,6 @@ kable(t(store.RMSE["RMSE",]),
       format = "rst")
 kable(t(store.RMSE["dollar.RMSE",]),
       format = "rst")
-
-
-# # .. Add country FE ####
-# fit1 <- lm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d,
-#            data = panel_agg)
-# 
-# fit2 <- plm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d,
-#             index = c("id_bilateral", "year"),
-#             model = "pooling",
-#             data = panel_agg)
-# stargazer(fit1, fit2,
-#           type = "text")
-# coef(fit1)
-# coef(fit2)
-# # Pooled OLS: same coefficients
-# 
-# fit3 <- lm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d +
-#              as.factor(year) -1,
-#            data = panel_agg)
-# 
-# fit4 <- plm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d,
-#             index = c("id_bilateral", "year"),
-#             effect = "time",
-#             model = "within",
-#             data = panel_agg)
-# coef(fit3)
-# coef(fit4)
-# # Time FE: same coefficients
-# 
-# fit5 <- felm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d | 
-#                factor(id_bilateral),
-#              data = panel_agg)
-# 
-# fit6 <- plm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d,
-#             index = c("id_bilateral", "year"),
-#             effect = "individual",
-#             model = "within",
-#             data = panel_agg)
-# coef(fit5)
-# coef(fit6)
-# # Bilateral FE: same coefficients
-# # Too computationally hard with lm
-# 
-# fit7 <- plm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d,
-#             index = c("id_bilateral", "year"),
-#             effect = "twoways",
-#             model = "within",
-#             data = panel_agg)
-# 
-# fit8 <- felm(ln.Imp_IFF ~ gdp_o + gdp_d + pop_o + pop_d | 
-#                factor(id_bilateral) + factor(year), 
-#              data = panel_agg)
-# coef(fit7)
-# coef(fit8)
-# # Twoway FE: same coefficients
 
 
 
@@ -295,8 +290,8 @@ viz <- bind_rows(viz_train %>%
                    select(true.value, predicted.value, year))
 ggplot(viz %>%
          group_by(year) %>%
-         summarize(true.value = sum(true.value, na.rm = TRUE),
-                   predicted.value = sum(predicted.value, na.rm = TRUE)) %>%
+         summarize(true.value = sum(true.value, na.rm = TRUE) / 10^9,
+                   predicted.value = sum(predicted.value, na.rm = TRUE) / 10^9) %>%
          ungroup()) +
   geom_line(aes(x = year,
                 y = true.value),
