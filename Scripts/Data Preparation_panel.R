@@ -77,25 +77,25 @@ panel <- panel %>%
            Import_value, NetExport_value,
            pImport_value, pNetExport_value,
            Imp_IFF, Exp_IFF)) %>%
-  mutate(Net_Tot_IFF = Imp_IFF + Exp_IFF,
-         GER_Tot_IFF = ifelse(Imp_IFF > 0, Imp_IFF, 0) +
-           ifelse(Exp_IFF > 0, Exp_IFF, 0),
-         In_GER_Tot_IFF = ifelse(Imp_IFF < 0, Imp_IFF, 0) +
-           ifelse(Exp_IFF < 0, Exp_IFF, 0))
+  mutate(Net_Tot_IFF_t = ( Imp_IFF + Exp_IFF ) /10^3,
+         GER_Tot_IFF_t = ( ifelse(Imp_IFF > 0, Imp_IFF, 0) +
+           ifelse(Exp_IFF > 0, Exp_IFF, 0) ) /10^3,
+         In_GER_Tot_IFF_t = ( ifelse(Imp_IFF < 0, Imp_IFF, 0) +
+           ifelse(Exp_IFF < 0, Exp_IFF, 0) ) /10^3)
 
-sum(is.na(panel$Net_Tot_IFF))
+sum(is.na(panel$Net_Tot_IFF_t))
 # No NAs
 # This is net misinvoicing
-summary(panel$GER_Tot_IFF)
-summary(panel$In_GER_Tot_IFF)
+summary(panel$GER_Tot_IFF_t)
+summary(panel$In_GER_Tot_IFF_t)
 
 
 # .. Generate and transform outcome variables ####
 panel <- panel %>%
-  mutate(GER_Tot_IFF = ifelse(GER_Tot_IFF == 0, NA, GER_Tot_IFF),
-         In_GER_Tot_IFF = ifelse(In_GER_Tot_IFF == 0, NA, In_GER_Tot_IFF)) %>%
-  mutate(ln.GER_Tot_IFF = log(GER_Tot_IFF),
-         ln.In_GER_Tot_IFF = log(abs(In_GER_Tot_IFF)))
+  mutate(GER_Tot_IFF_t = ifelse(GER_Tot_IFF_t == 0, NA, GER_Tot_IFF_t),
+         In_GER_Tot_IFF_t = ifelse(In_GER_Tot_IFF_t == 0, NA, In_GER_Tot_IFF_t)) %>%
+  mutate(ln.GER_Tot_IFF_t = log(GER_Tot_IFF_t),
+         ln.In_GER_Tot_IFF_t = log(abs(In_GER_Tot_IFF_t)))
 
 panel <- panel %>%
   mutate(id_bilateral = paste(reporter.ISO, partner.ISO, sep = "_"))
@@ -216,7 +216,15 @@ FATF <- read.csv(here("Data", "FATF", "FATF.csv")) %>%
 panel <- left_join(panel, FATF %>%
                      select(-Country),
                    by = c("reporter.ISO" = "ISO3166.3")) %>%
-  mutate(FATF = ifelse(is.na(FATF), 0, FATF))
+  mutate(FATF = ifelse(is.na(FATF), 0, FATF)) %>%
+  rename(rFATF = FATF)
+
+panel <- left_join(panel, FATF %>%
+                     select(-Country),
+                   by = c("partner.ISO" = "ISO3166.3")) %>%
+  mutate(FATF = ifelse(is.na(FATF), 0, FATF)) %>%
+  rename(pFATF = FATF)
+
 rm(FATF)
 
 
@@ -279,8 +287,19 @@ panel <- left_join(panel, FSI %>%
 
 panel <- left_join(panel, KFSI %>%
                      select(-Jurisdiction) %>%
-                     mutate_at(vars(starts_with("KFSI")), list(~ as.numeric(.))),
+                     rename(rKFSI13 = KFSI13,
+                            rKFSI17 = KFSI17,
+                            rKFSI20 = KFSI20) %>%
+                     mutate_at(vars(starts_with("rKFSI")), list(~ as.numeric(.))),
                    by = c("reporter.ISO" = "ISO3166.3"))
+
+panel <- left_join(panel, KFSI %>%
+                     select(-Jurisdiction) %>%
+                     rename(pKFSI13 = KFSI13,
+                            pKFSI17 = KFSI17,
+                            pKFSI20 = KFSI20) %>%
+                     mutate_at(vars(starts_with("pKFSI")), list(~ as.numeric(.))),
+                   by = c("partner.ISO" = "ISO3166.3"))
 
 rm(FSI, KFSI)
 
@@ -492,28 +511,23 @@ panel %>%
   nrow
 # 0
 
-panel_agg %>%
-  filter(is.na(ln.Tot_IFF)) %>%
-  nrow
-# 0
-
 panel %>%
-  filter(is.na(ln.GER_Tot_IFF)) %>%
+  filter(is.na(ln.GER_Tot_IFF_t)) %>%
   nrow
 # 599956
 
 panel %>%
-  filter(is.na(ln.In_GER_Tot_IFF)) %>%
+  filter(is.na(ln.In_GER_Tot_IFF_t)) %>%
   nrow
 # 629689
 
 panel %>%
-  filter(is.na(ln.GER_Tot_IFF) & is.na(ln.In_GER_Tot_IFF)) %>%
+  filter(is.na(ln.GER_Tot_IFF_t) & is.na(ln.In_GER_Tot_IFF_t)) %>%
   nrow
 # 0
 
 panel %>%
-  filter(is.na(Net_Tot_IFF)) %>%
+  filter(is.na(Net_Tot_IFF_t)) %>%
   nrow
 # 0
 

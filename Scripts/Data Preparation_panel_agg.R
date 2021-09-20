@@ -31,7 +31,6 @@
 # Import WITS
 # .. Import average tariff line data
 # .. Generate unique identifier
-# .. Merge with panel
 # .. Aggregate up to reporter-partner-year
 # Export Clean Data
 
@@ -97,18 +96,22 @@ rm(GER_Orig_Dest_Year, Inflow_GER_Orig_Dest_Year, Net_Orig_Dest_Year)
 # .. Generate and transform outcome variables ####
 panel_agg <- panel_agg %>%
   rowwise() %>% 
-  mutate(Tot_IFF = sum(Imp_IFF, Exp_IFF, na.rm = TRUE),
-         In_Tot_IFF = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE),
-         Net_IFF = sum(Net_Imp_IFF, Net_Exp_IFF, na.rm = TRUE)) %>%
+  mutate(Imp_IFF_t = Imp_IFF / 10^3,
+         Exp_IFF_t = Exp_IFF / 10^3,
+         In_Imp_IFF_t = In_Imp_IFF / 10^3,
+         In_Exp_IFF_t = In_Exp_IFF / 10^3,
+         Tot_IFF_t = sum(Imp_IFF, Exp_IFF, na.rm = TRUE),
+         In_Tot_IFF_t = sum(In_Imp_IFF, In_Exp_IFF, na.rm = TRUE),
+         Net_IFF_t = sum(Net_Imp_IFF, Net_Exp_IFF, na.rm = TRUE) /10^3) %>%
   ungroup %>%
-  mutate(Tot_IFF = ifelse(Tot_IFF == 0, NA, Tot_IFF),
-         In_Tot_IFF = ifelse(In_Tot_IFF == 0, NA, In_Tot_IFF)) %>%
-  mutate(ln.Imp_IFF = log(Imp_IFF), # Import over-invoicing
-         ln.Exp_IFF = log(Exp_IFF), # Export under-invoicing
-         ln.Tot_IFF = log(Tot_IFF), # Gross outflows
-         ln.In_Imp_IFF = log(abs(In_Imp_IFF)), # Import under-invoicing
-         ln.In_Exp_IFF = log(abs(In_Exp_IFF)), # Export over-invoicing
-         ln.In_Tot_IFF = log(abs(In_Tot_IFF))) # Gross inflows
+  mutate(Tot_IFF_t = ifelse(Tot_IFF_t == 0, NA, Tot_IFF_t),
+         In_Tot_IFF_t = ifelse(In_Tot_IFF_t == 0, NA, In_Tot_IFF_t)) %>%
+  mutate(ln.Imp_IFF_t = log(Imp_IFF_t), # Import over-invoicing
+         ln.Exp_IFF_t = log(Exp_IFF_t), # Export under-invoicing
+         ln.Tot_IFF_t = log(Tot_IFF_t), # Gross outflows
+         ln.In_Imp_IFF_t = log(abs(In_Imp_IFF_t)), # Import under-invoicing
+         ln.In_Exp_IFF_t = log(abs(In_Exp_IFF_t)), # Export over-invoicing
+         ln.In_Tot_IFF_t = log(abs(In_Tot_IFF_t))) # Gross inflows
 
 panel_agg <- panel_agg %>%
   mutate(id_bilateral = paste(reporter.ISO, partner.ISO, sep = "_"))
@@ -229,7 +232,15 @@ FATF <- read.csv(here("Data", "FATF", "FATF.csv")) %>%
 panel_agg <- left_join(panel_agg, FATF %>%
                          select(-Country),
                        by = c("reporter.ISO" = "ISO3166.3")) %>%
-  mutate(FATF = ifelse(is.na(FATF), 0, FATF))
+  mutate(FATF = ifelse(is.na(FATF), 0, FATF)) %>%
+  rename(rFATF = FATF)
+
+panel_agg <- left_join(panel_agg, FATF %>%
+                         select(-Country),
+                       by = c("partner.ISO" = "ISO3166.3")) %>%
+  mutate(FATF = ifelse(is.na(FATF), 0, FATF)) %>%
+  rename(pFATF = FATF)
+
 rm(FATF)
 
 
@@ -292,8 +303,19 @@ panel_agg <- left_join(panel_agg, FSI %>%
 
 panel_agg <- left_join(panel_agg, KFSI %>%
                          select(-Jurisdiction) %>%
-                         mutate_at(vars(starts_with("KFSI")), list(~ as.numeric(.))),
+                         rename(rKFSI13 = KFSI13,
+                                rKFSI17 = KFSI17,
+                                rKFSI20 = KFSI20) %>%
+                         mutate_at(vars(starts_with("rKFSI")), list(~ as.numeric(.))),
                        by = c("reporter.ISO" = "ISO3166.3"))
+
+panel_agg <- left_join(panel_agg, KFSI %>%
+                         select(-Jurisdiction) %>%
+                         rename(pKFSI13 = KFSI13,
+                                pKFSI17 = KFSI17,
+                                pKFSI20 = KFSI20) %>%
+                         mutate_at(vars(starts_with("pKFSI")), list(~ as.numeric(.))),
+                       by = c("partner.ISO" = "ISO3166.3"))
 
 rm(FSI, KFSI)
 
@@ -481,18 +503,6 @@ rm(CPI)
 load(here("Data", "WITS", "tariff.Rdata"))
 
 
-# .. Merge with panel ####
-panel <- left_join(panel, tariff %>% select(-c(reporter, partner)),
-                   by = c("id" = "id",
-                          "reporter.ISO" = "reporter.ISO",
-                          "partner.ISO" = "partner.ISO",
-                          "commodity.code" = "commodity.code",
-                          "year" = "year"))
-
-panel %>% filter(duplicated(panel$id)) %>% nrow
-# 0
-
-
 # .. Aggregate up to reporter-partner-year ####
 tariff_agg <- tariff %>%
   select(-id) %>%
@@ -526,22 +536,22 @@ panel_agg %>%
 # 90268 bilateral country pairs
 
 panel_agg %>%
-  filter(is.na(ln.Tot_IFF)) %>%
+  filter(is.na(ln.Tot_IFF_t)) %>%
   nrow
 # 0
 
 panel_agg %>%
-  filter(is.na(ln.In_Tot_IFF)) %>%
+  filter(is.na(ln.In_Tot_IFF_t)) %>%
   nrow
 # 4588
 
 panel_agg %>%
-  filter(!is.na(ln.Tot_IFF) & is.na(ln.In_Tot_IFF)) %>%
+  filter(!is.na(ln.Tot_IFF_t) & is.na(ln.In_Tot_IFF_t)) %>%
   nrow
 # 4588
 
 panel_agg %>%
-  filter(is.na(Net_IFF)) %>%
+  filter(is.na(Net_IFF_t)) %>%
   nrow
 # 0
 
