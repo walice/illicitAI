@@ -8,8 +8,10 @@
 ## ## ## ## ## ## ## ## ## ## ##
 # Preamble
 # Import results
-# .. For disaggregated panel
-# .. For aggregated panel
+# Disaggregated Predictions
+# Aggregated Predictions
+# .. Gross outflows
+# .. Gross inflows
 
 
 
@@ -24,10 +26,8 @@ library(tidyverse)
 
 
 ## ## ## ## ## ## ## ## ## ## ##
-# IMPORT RESULTS            ####
+# DISAGGREGATED PREDICTIONS ####
 ## ## ## ## ## ## ## ## ## ## ##
-
-# .. For disaggregated panel ####
 train_smp <- arrow::read_feather(here("Results", "train_smp.feather"))
 test_smp <- arrow::read_feather(here("Results", "test_smp.feather"))
 
@@ -135,100 +135,203 @@ ggplot(viz %>%
                 col = name))
 
 
-# .. For aggregated panel ####
+
+## ## ## ## ## ## ## ## ## ## ##
+# AGGREGATED PREDICTIONS    ####
+## ## ## ## ## ## ## ## ## ## ##
+
 train_agg_smp <- arrow::read_feather(here("Results", "train_agg_smp.feather"))
 test_agg_smp <- arrow::read_feather(here("Results", "test_agg_smp.feather"))
 
-preds.LM.train_agg <- arrow::read_feather("Results/preds.LM.train_agg.feather") %>%
-  rename(preds_LM_train_agg = "0")
-preds.lightGBM.train_agg <- arrow::read_feather("Results/preds.lightGBM.train_agg.feather") %>%
-  rename(preds_lightGBM_train_agg = "0")
-# preds.NN.train_agg <- arrow::read_feather("Results/preds.NN.train_agg.feather") %>%
-#   rename(preds_NN_train_agg = "0")
-preds.SVM.train_agg <- arrow::read_feather("Results/preds.SVM.train_agg.feather") %>%
-  rename(preds_SVM_train_agg = "0")
-preds.RF.train_agg <- arrow::read_feather("Results/preds.RF.train_agg.feather") %>%
-  rename(preds_RF_train_agg = "0")
 
-preds.LM.test_agg <- arrow::read_feather("Results/preds.LM.test_agg.feather") %>%
-  rename(preds_LM_test_agg = "0")
-preds.lightGBM.test_agg <- arrow::read_feather("Results/preds.lightGBM.test_agg.feather") %>%
-  rename(preds_lightGBM_test_agg = "0")
-# preds.NN.test_agg <- arrow::read_feather("Results/preds.NN.test_agg.feather") %>%
-#   rename(preds_NN_test_agg = "0")
-preds.SVM.test_agg <- arrow::read_feather("Results/preds.SVM.test_agg.feather") %>%
-  rename(preds_SVM_test_agg = "0")
-preds.RF.test_agg <- arrow::read_feather("Results/preds.RF.test_agg.feather") %>%
-  rename(preds_RF_test_agg = "0")
+# .. Gross outflows ####
+preds.LM.train_out_agg <- arrow::read_feather("Results/preds.LM.train_out_agg.feather") %>%
+  rename(preds_LM_train_out_agg = "0")
+preds.lightGBM.train_out_agg <- arrow::read_feather("Results/preds.lightGBM.train_out_agg.feather") %>%
+  rename(preds_lightGBM_train_out_agg = "0")
+# preds.NN.train_out_agg <- arrow::read_feather("Results/preds.NN.train_out_agg.feather") %>%
+#   rename(preds_NN_train_out_agg = "0")
+# preds.SVM.train_out_agg <- arrow::read_feather("Results/preds.SVM.train_out_agg.feather") %>%
+#   rename(preds_SVM_train_out_agg = "0")
+preds.RF.train_out_agg <- arrow::read_feather("Results/preds.RF.train_out_agg.feather") %>%
+  rename(preds_RF_train_out_agg = "0")
 
-train_agg_results <- bind_cols(train_agg_smp,
-                               preds.LM.train_agg, 
-                               preds.lightGBM.train_agg,
-                               preds.SVM.train_agg, 
-                               preds.RF.train_agg)
+preds.LM.test_out_agg <- arrow::read_feather("Results/preds.LM.test_out_agg.feather") %>%
+  rename(preds_LM_test_out_agg = "0")
+preds.lightGBM.test_out_agg <- arrow::read_feather("Results/preds.lightGBM.test_out_agg.feather") %>%
+  rename(preds_lightGBM_test_out_agg = "0")
+# preds.NN.test_out_agg <- arrow::read_feather("Results/preds.NN.test_out_agg.feather") %>%
+#   rename(preds_NN_test_out_agg = "0")
+# preds.SVM.test_out_agg <- arrow::read_feather("Results/preds.SVM.test_out_agg.feather") %>%
+#   rename(preds_SVM_test_out_agg = "0")
+preds.RF.test_out_agg <- arrow::read_feather("Results/preds.RF.test_out_agg.feather") %>%
+  rename(preds_RF_test_out_agg = "0")
 
-test_agg_results <- bind_cols(test_agg_smp,
-                              preds.LM.test_agg, 
-                              preds.lightGBM.test_agg,
-                              preds.SVM.test_agg, 
-                              preds.RF.test_agg)
+train_out_agg_results <- bind_cols(train_agg_smp,
+                                   preds.LM.train_out_agg, 
+                                   preds.lightGBM.train_out_agg,
+                                   # preds.SVM.train_out_agg, 
+                                   preds.RF.train_out_agg)
 
-results_agg <- bind_rows(train_agg_results, test_agg_results)
+test_out_agg_results <- bind_cols(test_agg_smp,
+                                  preds.LM.test_out_agg, 
+                                  preds.lightGBM.test_out_agg,
+                                  # preds.SVM.test_out_agg, 
+                                  preds.RF.test_out_agg)
 
-results_agg <- results_agg %>%
+results_out_agg <- bind_rows(train_out_agg_results, test_out_agg_results)
+
+results_out_agg <- results_out_agg %>%
   mutate(Tot_IFF_t = exp(ln.Tot_IFF_t)) %>%
-  mutate_at(vars(ends_with("train_agg")),
-            ~exp(.)) %>%
-  mutate_at(vars(ends_with("test_agg")),
+  mutate_at(vars(ends_with("out_agg")),
             ~exp(.))
 
-results_agg <- results_agg %>%
-  mutate(preds_LM = ifelse(year <= 2014, preds_LM_train_agg, preds_LM_test_agg),
-         preds_lightGBM = ifelse(year <= 2014, preds_lightGBM_train_agg, preds_lightGBM_test_agg),
-         preds_SVM = ifelse(year <= 2014, preds_SVM_train_agg, preds_SVM_test_agg),
-         preds_RF = ifelse(year <= 2014, preds_RF_train_agg, preds_RF_test_agg))
-         # preds_NN = ifelse(year <= 2014, preds_NN_train_agg, preds_NN_test_agg))
+results_out_agg <- results_out_agg %>%
+  mutate(preds_LM = ifelse(year <= 2014, preds_LM_train_out_agg, preds_LM_test_out_agg),
+         preds_lightGBM = ifelse(year <= 2014, preds_lightGBM_train_out_agg, preds_lightGBM_test_out_agg),
+         # preds_SVM = ifelse(year <= 2014, preds_SVM_train_out_agg, preds_SVM_test_out_agg),
+         preds_RF = ifelse(year <= 2014, preds_RF_train_out_agg, preds_RF_test_out_agg))
+         # preds_NN = ifelse(year <= 2014, preds_NN_train_out_agg, preds_NN_test_out_agg))
 
-viz <- results_agg %>%
+viz_out <- results_out_agg %>%
   pivot_longer(c("Tot_IFF_t",
                  "preds_LM", 
                  "preds_lightGBM",
-                 "preds_SVM", 
+                 # "preds_SVM", 
                  "preds_RF")) %>%
                # , "preds_NN"))
   select(c("reporter.ISO", "partner.ISO",
            "year", "name", "value"))
 
-out_viz <- bind_rows(out_viz_train %>%
-                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_trn, year),
-                 out_viz_test %>%
-                   select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_tst, year)) %>%
-  mutate_at(vars(ends_with("value")),
-            ~exp(.)) %>%
-  pivot_longer(c("true.value", "predicted.value"))
+# viz_out <- bind_rows(out_viz_train %>%
+#                    select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_trn, year),
+#                  out_viz_test %>%
+#                    select(true.value = ln.Tot_IFF_t, predicted.value = out_preds_tst, year)) %>%
+#   mutate_at(vars(ends_with("value")),
+#             ~exp(.)) %>%
+#   pivot_longer(c("true.value", "predicted.value"))
   
 
-g <- ggplot(viz %>%
-         filter(name != "preds_SVM") %>%
-         group_by(year, name) %>%
-         summarize(value = sum(value)) %>%
-         ungroup()) +
+g_out <- ggplot(viz_out %>%
+           # filter(name != "preds_SVM") %>%
+           group_by(year, name) %>%
+           summarize(value = sum(value)) %>%
+           ungroup() %>%
+           mutate(name = factor(name,
+                                levels = c("Tot_IFF_t",
+                                           "preds_LM",
+                                           "preds_RF",
+                                           "preds_lightGBM")))) +
   geom_line(aes(x = year,
                 y = value / 10^6,
                 col = name)) +
-  geom_line(data = out_viz %>%
-              group_by(year, name) %>%
-              summarize(value = sum(value)) %>%
-              ungroup(),
-            aes(x = year,
-                y = value / 10^6,
-                col = name)) +
+  # geom_line(data = out_viz %>%
+  #             group_by(year, name) %>%
+  #             summarize(value = sum(value)) %>%
+  #             ungroup(),
+  #           aes(x = year,
+  #               y = value / 10^6,
+  #               col = name)) +
   labs(x = "Year",
-       y = "Illicit flow in billion USD")
-ggsave(g,
-       file = here("Figures", "preds_fullmod_all.png"),
+       y = "Illicit flow in billion USD",
+       title = "Predictions from all models",
+       subtitle = "For gross outflows")
+g_out
+ggsave(g_out,
+       file = here("Figures", "preds_out_fullmod_all.png"),
        width = 6, height = 5, units = "in")
 
+
+# .. Gross inflows ####
+preds.LM.train_in_agg <- arrow::read_feather("Results/preds.LM.train_in_agg.feather") %>%
+  rename(preds_LM_train_in_agg = "0")
+preds.lightGBM.train_in_agg <- arrow::read_feather("Results/preds.lightGBM.train_in_agg.feather") %>%
+  rename(preds_lightGBM_train_in_agg = "0")
+# preds.NN.train_in_agg <- arrow::read_feather("Results/preds.NN.train_in_agg.feather") %>%
+#   rename(preds_NN_train_in_agg = "0")
+# preds.SVM.train_in_agg <- arrow::read_feather("Results/preds.SVM.train_in_agg.feather") %>%
+#   rename(preds_SVM_train_in_agg = "0")
+preds.RF.train_in_agg <- arrow::read_feather("Results/preds.RF.train_in_agg.feather") %>%
+  rename(preds_RF_train_in_agg = "0")
+
+preds.LM.test_in_agg <- arrow::read_feather("Results/preds.LM.test_in_agg.feather") %>%
+  rename(preds_LM_test_in_agg = "0")
+preds.lightGBM.test_in_agg <- arrow::read_feather("Results/preds.lightGBM.test_in_agg.feather") %>%
+  rename(preds_lightGBM_test_in_agg = "0")
+# preds.NN.test_in_agg <- arrow::read_feather("Results/preds.NN.test_in_agg.feather") %>%
+#   rename(preds_NN_test_in_agg = "0")
+# preds.SVM.test_in_agg <- arrow::read_feather("Results/preds.SVM.test_in_agg.feather") %>%
+#   rename(preds_SVM_test_in_agg = "0")
+preds.RF.test_in_agg <- arrow::read_feather("Results/preds.RF.test_in_agg.feather") %>%
+  rename(preds_RF_test_in_agg = "0")
+
+train_in_agg_results <- bind_cols(train_agg_smp,
+                                  preds.LM.train_in_agg, 
+                                  preds.lightGBM.train_in_agg,
+                                  # preds.SVM.train_in_agg, 
+                                  preds.RF.train_in_agg)
+
+test_in_agg_results <- bind_cols(test_agg_smp,
+                                 preds.LM.test_in_agg, 
+                                 preds.lightGBM.test_in_agg,
+                                 # preds.SVM.test_in_agg, 
+                                 preds.RF.test_in_agg)
+
+results_in_agg <- bind_rows(train_in_agg_results, test_in_agg_results)
+
+results_in_agg <- results_in_agg %>%
+  mutate(In_Tot_IFF_t = exp(ln.In_Tot_IFF_t)) %>%
+  mutate_at(vars(ends_with("in_agg")),
+            ~exp(.))
+
+results_in_agg <- results_in_agg %>%
+  mutate(preds_LM = ifelse(year <= 2014, preds_LM_train_in_agg, preds_LM_test_in_agg),
+         preds_lightGBM = ifelse(year <= 2014, preds_lightGBM_train_in_agg, preds_lightGBM_test_in_agg),
+         # preds_SVM = ifelse(year <= 2014, preds_SVM_train_in_agg, preds_SVM_test_in_agg),
+         preds_RF = ifelse(year <= 2014, preds_RF_train_in_agg, preds_RF_test_in_agg))
+         # preds_NN = ifelse(year <= 2014, preds_NN_train_in_agg, preds_NN_test_in_agg))
+
+viz_in <- results_in_agg %>%
+  pivot_longer(c("In_Tot_IFF_t",
+                 "preds_LM", 
+                 "preds_lightGBM",
+                 # "preds_SVM", 
+                 "preds_RF")) %>%
+  # , "preds_NN"))
+  select(c("reporter.ISO", "partner.ISO",
+           "year", "name", "value"))
+
+g_in <- ggplot(viz_in %>%
+                # filter(name != "preds_SVM") %>%
+                group_by(year, name) %>%
+                summarize(value = sum(value)) %>%
+                ungroup() %>%
+                mutate(name = factor(name,
+                                     levels = c("In_Tot_IFF_t",
+                                                "preds_LM",
+                                                "preds_RF",
+                                                "preds_lightGBM")))) +
+  geom_line(aes(x = year,
+                y = value / 10^6,
+                col = name)) +
+  # geom_line(data = in_viz %>%
+  #             group_by(year, name) %>%
+  #             summarize(value = sum(value)) %>%
+  #             ungroup(),
+  #           aes(x = year,
+  #               y = value / 10^6,
+  #               col = name)) +
+  labs(x = "Year",
+       y = "Illicit flow in billion USD",
+       title = "Predictions from all models",
+       subtitle = "For gross inflows")
+g_in
+ggsave(g_in,
+       file = here("Figures", "preds_in_fullmod_all.png"),
+       width = 6, height = 5, units = "in")
+
+
+########
 reporters <- c("USA", "CHN", "GBR",
                "CHE", "FRA", "SGP",
                "COG", "YEM", "KHM", "TZA")
