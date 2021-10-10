@@ -275,6 +275,7 @@ hist(panel_agg$rKFSI20)
 dev.off()
 
 
+
 # .. Transform continuous variables ####
 ihs <- function(x){
   x <- log(x + sqrt(x^2 + 1))

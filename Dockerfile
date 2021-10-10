@@ -172,7 +172,7 @@ RUN \
     jupyter nbextension install --py nbdime --sys-prefix && \
     jupyter nbextension enable --py nbdime --sys-prefix && \
     \
-    pip install lightgbm pyarrow feather-format papermill \
+    pip install lightgbm pyarrow feather-format papermill nested-cv \
     openpyxl pyreadr networkx==2.5 joypy
     
 RUN conda install -y -c conda-forge cartopy && \

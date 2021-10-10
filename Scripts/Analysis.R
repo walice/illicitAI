@@ -8,12 +8,15 @@
 ## ## ## ## ## ## ## ## ## ## ##
 # Preamble
 # Import results
+# Functions
 # Set Up Samples
-# .. For disaggregated panel
-# .. For aggregated panel
+# .. Subset data for LMICs
+# .. For generalization test: hold out specific countries
+# .. For pooled panel
+# .. Check sample dimensions and export
 # OLS Gravity Models
-# .. Functions
 # .. Baseline specification (Walker TBML gravity model)
+# .. Full specification (all predictors)
 # Train and Test
 # .. Visualize predictions
 
@@ -32,12 +35,16 @@ library(kableExtra)
 # install.packages("rstatix")
 # install.packages("ggpubr")
 library(lfe)
+# install.packages("naniar")
+library(modelr)
+library(naniar)
 # library(parsnip)
 library(plm)
 library(readxl)
 library(stargazer)
 library(tidymodels)
 library(tidyverse)
+set.seed(1509)
 
 
 
@@ -45,77 +52,15 @@ library(tidyverse)
 # IMPORT RESULTS            ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-load(here("Data", "IFF", "panel_trans.Rdata"))
 load(here("Data", "IFF", "panel_agg_trans.Rdata"))
-load(here("Results", "vars.Rdata"))
+load(here("Data", "IFF", "panel_trans.Rdata"))
 
 
 
 ## ## ## ## ## ## ## ## ## ## ##
-# SET UP SAMPLES            ####
+# FUNCTIONS                 ####
 ## ## ## ## ## ## ## ## ## ## ##
 
-# .. For disaggregated panel ####
-train.panel <- panel_trans %>%
-  filter(year <= 2014)
-test.panel <- panel_trans %>%
-  filter(year > 2014)
-
-nrow(train.panel)
-# 1934438
-nrow(test.panel)
-# 512241
-nrow(train.panel) + nrow(test.panel) == nrow(panel_trans)
-# TRUE
-
-round(nrow(test.panel) / nrow(panel_trans), 2)
-# 0.21
-
-write_feather(train.panel, here("Results", "train.feather"))
-write_feather(test.panel, here("Results", "test.feather"))
-
-
-# .. For aggregated panel ####
-train.panel_agg <- panel_agg_trans %>%
-  filter(year <= 2014)
-test.panel_agg <- panel_agg_trans %>%
-  filter(year > 2014)
-
-nrow(train.panel_agg)
-# 81249
-nrow(test.panel_agg)
-# 18910
-nrow(train.panel_agg) + nrow(test.panel_agg) == nrow(panel_agg_trans)
-# TRUE
-
-round(nrow(test.panel_agg) / nrow(panel_agg_trans), 2)
-# 0.19
-
-train.panel_agg %>% distinct(reporter.ISO) %>% nrow
-# 166
-train.panel_agg %>% distinct(partner.ISO) %>% nrow
-# 166
-
-test.panel_agg %>% distinct(reporter.ISO) %>% nrow
-# 147
-test.panel_agg %>% distinct(partner.ISO) %>% nrow
-# 147
-
-train.panel_agg %>% distinct(year)
-# 2000-2014
-test.panel_agg %>% distinct(year)
-# 2015-2018
-
-write_feather(train.panel_agg, here("Results", "train_agg.feather"))
-write_feather(test.panel_agg, here("Results", "test_agg.feather"))
-
-
-
-## ## ## ## ## ## ## ## ## ## ##
-# OLS GRAVITY MODELS        ####
-## ## ## ## ## ## ## ## ## ## ##
-
-# .. Functions ####
 subset_complete <- function(data, DV, IVs, 
                             id_vars = c("reporter.ISO", "partner.ISO", "year", "id")){
   subset <- data[, c(DV, IVs, id_vars)]
@@ -135,7 +80,7 @@ fit_lm <- function(data, DV, IVs,
 }
 
 ln.pred <- function(model, data, DV, IVs,
-                 id_vars = c("reporter.ISO", "partner.ISO", "year", "id")){
+                    id_vars = c("reporter.ISO", "partner.ISO", "year", "id")){
   data <- subset_complete(data, DV, IVs, id_vars)
   ln.preds <- predict(model, newdata = data)
   return(ln.preds)
@@ -177,6 +122,178 @@ calc_dollar_MSE <- function(data, true.value, predicted.value, IVs){
 }
 
 
+
+## ## ## ## ## ## ## ## ## ## ##
+# SET UP SAMPLES            ####
+## ## ## ## ## ## ## ## ## ## ##
+
+# .. Check missingness of data on all features
+features <- c('reporter.ISO', 'reporter', 'partner.ISO', 'partner', 'year',
+              'ln.gdp_o', 'ln.gdp_d', 'ln.pop_o', 'ln.pop_d', 
+              'dist', 'contig', 
+              'comlang', 'comcol', 'col45', 
+              'ihs.entry_cost_o', 'ihs.entry_cost_d', 'rta',
+              'rCorrCont', 'pCorrCont',
+              'rRegQual', 'pRegQual', 
+              'rRuleLaw', 'pRuleLaw',
+              'pSecrecyScore',
+              'pFSI.rank',
+              'pKFSI13',
+              'pKFSI17',
+              'pKFSI20',
+              'rFATF', 'pFATF',
+              'ihs.tariff',
+              'kai_o', 'kai_d', 'kao_o', 'kao_d',
+              'cc_o', 'cc_d', 'cci_o', 'cci_d', 'cco_o', 'cco_d',
+              'di_o', 'di_d', 'dii_o', 'dii_d', 'dio_o', 'dio_d')
+
+check_missing <- panel_agg_trans %>%
+  filter(rRegion == "Africa")
+  # filter(rIncome == "LIC" | rIncome == "LMC")
+miss_var_summary(check_missing) %>% view
+
+
+# .. Subset data for LMICs ####
+LMIC_agg <- panel_agg_trans %>%
+  filter(rIncome == "LIC" | rIncome == "LMC")
+nrow(LMIC_agg)
+# 20249
+
+LMIC_agg %>%
+  distinct(reporter.ISO) %>%
+  nrow
+# 63
+
+LMIC_agg %>%
+  distinct(partner.ISO) %>%
+  nrow
+# 151
+
+# Individual countries with most observations
+LMIC_agg %>%
+  group_by(reporter.ISO) %>%
+  tally() %>%
+  top_n(5) %>%
+  arrange(desc(n)) %>%
+  pull(reporter.ISO, n)
+
+
+# .. For generalization test: hold out specific countries ####
+LMICs <- LMIC_agg %>%
+  distinct(reporter.ISO) %>%
+  pull
+
+set.seed(1509)
+train.set <- sample(LMICs, floor(length(LMICs)*0.8))
+
+train.panel_agg <- LMIC_agg %>%
+  filter(reporter.ISO %in% train.set)
+test.panel_agg <- LMIC_agg %>%
+  filter(!(reporter.ISO %in% train.set))
+
+
+# .. For pooled model ####
+set.seed(1509)
+train.id <- sample(seq_len(nrow(LMIC_agg)), 
+                   size = floor(0.8*nrow(LMIC_agg)))
+
+train.panel_agg <- LMIC_agg[train.id, ]
+test.panel_agg <- LMIC_agg[-train.id, ]
+
+
+# .. Check sample dimensions and export ####
+nrow(train.panel_agg)
+# 16199
+nrow(test.panel_agg)
+# 4050
+nrow(train.panel_agg) + nrow(test.panel_agg) == nrow(LMIC_agg)
+# TRUE
+
+round(nrow(test.panel_agg) / nrow(LMIC_agg), 2)
+# 0.2
+
+train.panel_agg %>% distinct(reporter.ISO) %>% nrow
+# 63
+train.panel_agg %>% distinct(partner.ISO) %>% nrow
+# 149
+
+test.panel_agg %>% distinct(reporter.ISO) %>% nrow
+# 61
+test.panel_agg %>% distinct(partner.ISO) %>% nrow
+# 142
+
+write_feather(LMIC_agg, here("Results", "LMIC_agg.feather"))
+write_feather(train.panel_agg, here("Results", "train_agg.feather"))
+write_feather(test.panel_agg, here("Results", "test_agg.feather"))
+
+
+# .. Subset data for Africa ####
+Africa_agg <- panel_agg_trans %>%
+  filter(rRegion == "Africa")
+nrow(Africa_agg)
+# 13030
+
+Africa_agg %>%
+  distinct(reporter.ISO) %>%
+  nrow
+# 44
+
+Africa_agg %>%
+  distinct(partner.ISO) %>%
+  nrow
+# 135
+
+# Individual countries with most observations
+Africa_agg %>%
+  group_by(reporter.ISO) %>%
+  tally() %>%
+  top_n(5) %>%
+  arrange(desc(n)) %>%
+  pull(reporter.ISO, n)
+
+write_feather(Africa_agg, here("Results", "Africa_agg.feather"))
+
+
+# .. Subset disaggregated data for Africa ####
+Africa <- panel_trans %>%
+  filter(rRegion == "Africa")
+nrow(Africa)
+# 189640
+
+Africa <- Africa %>%
+  mutate(ln.Tot_IFF_t = ln.GER_Tot_IFF_t,
+         ln.In_Tot_IFF_t = ln.In_GER_Tot_IFF_t,
+         comlang = comlang_off)
+
+Africa %>%
+  distinct(reporter.ISO) %>%
+  nrow
+# 44
+
+Africa %>%
+  distinct(partner.ISO) %>%
+  nrow
+# 136
+
+# Individual countries with most observations
+Africa %>%
+  group_by(reporter.ISO) %>%
+  tally() %>%
+  top_n(5) %>%
+  arrange(desc(n)) %>%
+  pull(reporter.ISO, n)
+
+write_feather(Africa, here("Results", "Africa.feather"))
+
+# .. For placebo trials ####
+
+
+
+
+## ## ## ## ## ## ## ## ## ## ##
+# OLS GRAVITY MODELS        ####
+## ## ## ## ## ## ## ## ## ## ##
+
 # .. Baseline specification (Walker-type model) ####
 grav_vars <- c("ln.gdp_o", "ln.gdp_d",
                "comlang", "comcol",
@@ -217,13 +334,15 @@ stargazer(out_fit, in_fit, type = "text")
 stargazer(out_fit, in_fit, type = "latex")
 
 calc_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars)
-# 5.193806
+# 6.841226
 calc_dollar_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars) / 10^9
-# 9725.067
+# 1438.389
 calc_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars)
 # 6.205944
 calc_dollar_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars) / 10^9
-# 12162.63
+# 10.22042
+rsquare(out_fit, out_tst)
+# 0.3604589
 
 
 # .. Full specification (all predictors) ####
@@ -304,7 +423,7 @@ ggplot(viz_test) +
   geom_abline(slope = 1)
 
 ggplot(viz_test %>%
-         filter(reporter.ISO == "CHN")) +
+         filter(reporter.ISO == "GHA")) +
   geom_point(aes(x = true.value,
                  y = predicted.value)) +
   geom_abline(slope = 1)
