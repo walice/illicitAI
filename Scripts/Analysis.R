@@ -347,7 +347,18 @@ nrow(Africa_noZAF)
 # 11371
 write_feather(Africa_noZAF, here("Results", "Africa_noZAF.feather"))
 
+EGY <- panel_agg_trans %>%
+  filter(reporter.ISO == "EGY")
+nrow(EGY)
+# 1159
+write_feather(EGY, here("Results", "EGY.feather"))
 
+Africa_noEGY <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "EGY")
+nrow(Africa_noEGY)
+# 11871
+write_feather(Africa_noEGY, here("Results", "Africa_noEGY.feather"))
 
 
 ## ## ## ## ## ## ## ## ## ## ##

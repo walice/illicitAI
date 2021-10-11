@@ -98,14 +98,14 @@ g1 <- ggplot() +
   theme_bw() +
   ditch_axes +
   my_theme +
-  scale_fill_viridis_c("IFF (billion USD)", direction = -1) +
-  # labs(title = "Average annual gross outflows during 2000-2018") +
+  scale_fill_viridis_c("Outflow (billion USD)", direction = -1) +
+  labs(title = "Average annual gross outflows during 2000-2018") +
   theme(legend.position = "bottom",
         legend.margin = margin(t = -2, r = 0, b = 0, l = 0, unit = "cm")) +
   guides(fill = guide_colourbar(title.vjust = 0.8))
-# ggsave(g,
-#        file = here("Figures", "Choro_GER Out_Yearly Average_Dollars_Africa.png"),
-#        width = 6, height = 5, units = "in")
+ggsave(g1,
+       file = here("Figures", "Choro_GER Out_Yearly Average_Dollars_Africa.png"),
+       width = 6, height = 5, units = "in")
 
 
 # .. Gross inflows
@@ -131,15 +131,15 @@ g2 <- ggplot() +
   theme_bw() +
   ditch_axes +
   my_theme +
-  scale_fill_viridis_c("IFF (billion USD)", option = "C", direction = -1,
+  scale_fill_viridis_c("Inflow (billion USD)", option = "C", direction = -1,
                        breaks= pretty_breaks()) +
-  # labs(title = "Average annual gross inflows during 2000-2018") +
+  labs(title = "Average annual gross inflows during 2000-2018") +
   theme(legend.position = "bottom",
         legend.margin = margin(t = -2, r = 0, b = 0, l = 0, unit = "cm")) +
   guides(fill = guide_colourbar(title.vjust = 0.8))
-# ggsave(g,
-       # file = here("Figures", "Choro_GER In_Yearly Average_Dollars_Africa.png"),
-       # width = 6, height = 5, units = "in")
+ggsave(g2,
+       file = here("Figures", "Choro_GER In_Yearly Average_Dollars_Africa.png"),
+       width = 6, height = 5, units = "in")
 
 g <- grid.arrange(g1, g2, ncol = 2, top = "Average annual gross flows during 2000-2018")
 ggsave(g,
