@@ -64,11 +64,11 @@ codes <- read_excel(here("Data", "Codes_Masterlist.xlsx"), sheet = "Codes") %>%
 ## ## ## ## ## ## ## ## ## ## ##
 
 load(here("Data", "IFF", "panel_agg_trans.Rdata"))
+
 LMIC_agg <- panel_agg_trans %>%
   filter(rIncome == "LIC" | rIncome == "LMC")
 
-load(here("Data", "IFF", "panel_trans.Rdata"))
-Africa <- panel_trans %>%
+Africa_agg <- panel_agg_trans %>%
   filter(rRegion == "Africa")
 
 
@@ -191,8 +191,10 @@ ggsave(g,
 ## ## ## ## ## ## ## ## ## ## ##
 
 idx <- arrow::read_feather(here("Results", "idx.feather"))
-X <- arrow::read_feather(here("Results", "X.feather"))
-Y_out <- arrow::read_feather(here("Results", "Y_out.feather"))
+# X <- arrow::read_feather(here("Results", "X.feather"))
+X <- arrow::read_feather(here("Results", "X_train.feather"))
+# Y_out <- arrow::read_feather(here("Results", "Y_out.feather"))
+Y_out <- arrow::read_feather(here("Results", "Y_train_out.feather"))
 Y_in <- arrow::read_feather(here("Results", "Y_in.feather"))
 
 idx <- idx %>% 
@@ -295,25 +297,45 @@ ggsave(g,
 
 
 # .. Scatter plot of out-of-fold predictions for Africa countries ####
-test_countries <- Africa %>%
+Africa_agg %>%
   group_by(reporter.ISO) %>%
   tally() %>%
   top_n(5) %>%
   arrange(desc(n)) %>%
   pull(reporter.ISO)
 
-names <- data.frame(test_countries) %>%
+Africa_agg %>% 
+  group_by(reporter.ISO) %>%
+  summarize(Sum = sum(Tot_IFF_t, na.rm = TRUE)) %>%
+  ungroup() %>%
+  arrange(desc(Sum)) %>%
+  select(reporter.ISO, Sum, everything())
+
+countries <- idx %>%
+  distinct(reporter.ISO) %>%
+  arrange(reporter.ISO) %>%
+  pull
+
+names <- data.frame(countries) %>%
   left_join(codes %>%
               distinct(ISO3166.3, .keep_all = TRUE) %>%
               select(ISO3166.3, Country),
-            by = c("test_countries" = "ISO3166.3")) %>%
+            by = c("countries" = "ISO3166.3")) %>%
   pull(Country)
 
-ggplots <- list()
-for (r in seq(1, length(test_countries))){
+store.r2 <- matrix(NA, nrow = length(ISOs), ncol = 2)
+colnames(store.r2) <- c("ISO", "r2")
+
+for (r in seq(1, length(countries))){
   viz <- results_out_CV %>%
-    filter(reporter.ISO == test_countries[r])
+    filter(reporter.ISO == countries[r])
+  
   lim <- max(viz$ln.Tot_IFF_t, viz$preds_RF_CV_out, na.rm = TRUE)
+  r2 <- cor(viz$ln.Tot_IFF_t, viz$preds_RF_CV_out)^2
+  r2.label <- paste("R^2 == ", round(r2, 2))
+  store.r2[r, 1] <- countries[r]
+  store.r2[r, 2] <- r2
+  
   g <- ggplot(viz,
               aes(x = ln.Tot_IFF_t,
                   y = preds_RF_CV_out)) +
@@ -327,17 +349,18 @@ for (r in seq(1, length(test_countries))){
                 col = "grey") +
     labs(title = names[r],
          x = "True value (logged gross outflows)",
-         y = "Predicted value (logged gross outflows)")
-  ggplots[[r]] <- g
+         y = "Predicted value (logged gross outflows)") +
+    geom_text(x = -Inf,
+              y = Inf,
+              hjust = 0, vjust = 1,
+              label = r2.label,
+              family = "montserrat",
+              size = 10,
+              parse = TRUE)
   ggsave(g,
-         file = here("Figures", paste0("RF_scatterpreds_", test_countries[r], ".png")),
+         file = here("Figures", paste0("RF_scatterpreds_", countries[r], ".png")),
          width = 5, height = 5, units = "in")
 }
 
 
-g <- grid.arrange(ggplots[[1]], ggplots[[2]],
-                  ggplots[[3]], ggplots[[4]],
-                  nrow = 2)
-ggsave(g,
-       file = here("Figures", paste0("RF_scatterpreds_grid.png")),
-       width = 5, height = 5, units = "in")
+

@@ -37,7 +37,7 @@ library(kableExtra)
 library(lfe)
 # install.packages("naniar")
 library(modelr)
-library(naniar)
+# library(naniar)
 # library(parsnip)
 library(plm)
 library(readxl)
@@ -53,7 +53,6 @@ set.seed(1509)
 ## ## ## ## ## ## ## ## ## ## ##
 
 load(here("Data", "IFF", "panel_agg_trans.Rdata"))
-load(here("Data", "IFF", "panel_trans.Rdata"))
 
 
 
@@ -254,38 +253,99 @@ Africa_agg %>%
 write_feather(Africa_agg, here("Results", "Africa_agg.feather"))
 
 
-# .. Subset disaggregated data for Africa ####
-Africa <- panel_trans %>%
-  filter(rRegion == "Africa")
-nrow(Africa)
-# 189640
+# .. For pooled model ####
+set.seed(1509)
+train.id <- sample(seq_len(nrow(Africa_agg)), 
+                   size = floor(0.8*nrow(Africa_agg)))
 
-Africa <- Africa %>%
-  mutate(ln.Tot_IFF_t = ln.GER_Tot_IFF_t,
-         ln.In_Tot_IFF_t = ln.In_GER_Tot_IFF_t,
-         comlang = comlang_off)
+train.panel_agg <- Africa_agg[train.id, ]
+test.panel_agg <- Africa_agg[-train.id, ]
 
-Africa %>%
-  distinct(reporter.ISO) %>%
-  nrow
-# 44
+write_feather(train.panel_agg, here("Results", "train_agg.feather"))
+write_feather(test.panel_agg, here("Results", "test_agg.feather"))
 
-Africa %>%
-  distinct(partner.ISO) %>%
-  nrow
-# 136
-
-# Individual countries with most observations
-Africa %>%
-  group_by(reporter.ISO) %>%
-  tally() %>%
-  top_n(5) %>%
-  arrange(desc(n)) %>%
-  pull(reporter.ISO, n)
-
-write_feather(Africa, here("Results", "Africa.feather"))
 
 # .. For placebo trials ####
+X <- arrow::read_feather(here("Results", "X_train.feather"))
+
+X_placebo <- X[sample(nrow(X)), ]
+
+
+X_placebo[] <- lapply(X, sample)
+
+write_feather(X_placebo, here("Results", "X_placebo.feather"))
+
+X_placebo <- X_placebo %>%
+  select(-dist, -contig, -comlang, -comcol, -col45, -rta, -ihs.tariff)
+
+X_placebo <- X %>%
+  select(-ln.gdp_o, -ln.gdp_d, -ln.pop_o, -ln.pop_d)
+
+X_placebo <- X %>%
+  select(-dist, -contig, -comlang, -comcol, -col45, -rta, -ihs.tariff) %>%
+  select(-ln.gdp_o, -ln.gdp_d, -ln.pop_o, -ln.pop_d)
+
+X_placebo <- X %>%
+  select(-rCorrCont, pCorrCont, rRegQual, pRegQual,
+         rRuleLaw, pRuleLaw)
+
+X_placebo <- X %>%
+  select(-dist, -contig, -ihs.tariff,
+         -rCorrCont, -pCorrCont, -rRegQual, -pRegQual)
+
+Xi <- X %>%
+  select(c('ln.gdp_o', 'ln.pop_o', 'ihs.entry_cost_o', 
+           'rCorrCont', 'rRegQual', 'rRuleLaw',
+           'rFATF', 
+           'kai_o', 'kao_o', 'cc_o', 'cci_o', 'cco_o', 'di_o', 'dii_o', 'dio_o'))
+
+Xj <-  X %>%
+  select(c('ln.gdp_d', 'ln.pop_d', 'ihs.entry_cost_d', 
+                      'pCorrCont', 'pRegQual', 'pRuleLaw',
+                      'pSecrecyScore', 'pFSI.rank', 'pKFSI13', 'pKFSI17', 'pKFSI20',
+                      'pFATF', 
+                      'kai_d', 'kao_d', 'cc_d', 'cci_d', 'cco_d', 'di_d', 'dii_d', 'dio_d'))
+
+Xij <- X %>%
+  select(c('dist', 'contig', 'comlang', 'comcol', 'col45', 'rta',
+           'ihs.tariff'))
+
+Xj_shuffle <- Xj[sample(nrow(Xj)), ]
+
+
+X_placebo <- cbind(Xi, Xj_shuffle, Xij)
+
+
+####### Create full x placeblo, shuffle rows of bilat partners
+X <- arrow::read_feather(here("Results", "X_train.feather"))
+
+# Shuffle row-wise
+X_placebo <- X[sample(nrow(X)),]
+
+write_feather(X_placebo, here("Results", "X_placebo.feather"))
+
+
+## .. Can the model travel? Train on Africa and see if it applies to LMIC more broadly
+# .. Subset data for HICs ####
+HIC_agg <- panel_agg_trans %>%
+  filter(rIncome == "HIC")
+nrow(HIC_agg)
+# 52025
+write_feather(HIC_agg, here("Results", "HIC_agg.feather"))
+
+# .. Subset data for individual countries ####
+ZAF <- panel_agg_trans %>%
+  filter(reporter.ISO == "ZAF")
+nrow(ZAF)
+# 1659
+write_feather(ZAF, here("Results", "ZAF.feather"))
+
+Africa_noZAF <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "ZAF")
+nrow(Africa_noZAF)
+# 11371
+write_feather(Africa_noZAF, here("Results", "Africa_noZAF.feather"))
 
 
 
