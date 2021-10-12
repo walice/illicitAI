@@ -71,6 +71,9 @@ LMIC_agg <- panel_agg_trans %>%
 Africa_agg <- panel_agg_trans %>%
   filter(rRegion == "Africa")
 
+HIC_agg <- panel_agg_trans %>%
+  filter(rIncome == "HIC")
+
 
 
 ## ## ## ## ## ## ## ## ## ## ##
@@ -116,6 +119,33 @@ g
 ggsave(g,
        file = here("Figures", "densities_trans.png"),
        width = 6, height = 4, units = "in")
+
+
+### Africa
+viz <- Africa_agg %>%
+  select(ln.Tot_IFF_t, ln.In_Tot_IFF_t) %>%
+  pivot_longer(c("ln.Tot_IFF_t", 
+                 "ln.In_Tot_IFF_t"))
+g <- ggplot(viz,
+            aes(x = value,
+                # group = name,
+                fill = name)) +
+  geom_density(alpha = 0.5,
+               col = NA) +
+  scale_fill_manual(name = "Flow direction",
+                    labels = c("Gross inflow",
+                               "Gross outflow"),
+                    values = c("#FFD84D", "#00B0F6")) +
+  labs(title = "Densities of transformed outcome variables",
+       x = "Logged illicit financial flow ($)",
+       y = "") +
+  theme(axis.text.y = element_blank())
+g
+ggsave(g,
+       file = here("Figures", "densities_trans_Africa.png"),
+       width = 6, height = 4, units = "in")
+
+
 
 
 # .. Correlogram ####
@@ -423,3 +453,50 @@ for (r in seq(1, length(countries))){
 
 
 placebo_in <- arrow::read_feather(here("Results", "placebo_results_100.feather"))
+
+viz <- placebo_in %>%
+  # select(ln.Tot_IFF_t, ln.In_Tot_IFF_t) %>%
+  pivot_longer(c("R2_train", 
+                 "R2_test",
+                 "MSE_test"))
+
+g <- ggplot(viz %>%
+              filter(name == "MSE_test"),
+            aes(x = value,
+                # group = name,
+                fill = name)) +
+  geom_density(alpha = 0.5,
+               col = NA) +
+  # geom_vline(xintercept = 3.04,
+  #            col = "#FFD84D") +
+  geom_segment(aes(x=4, 
+                   y=0, 
+                   xend=4, 
+                   yend=1.1), 
+               color = "#FFD84D") +
+  geom_text(x = 4,
+            y = 1.15,
+            label = "MSE from true trades",
+            col = "black",
+            family = "montserrat",
+            size = 10) +
+  geom_text(x = 12,
+            y = 1.15,
+            label = "MSE from placebo trades",
+            col = "black",
+            family = "montserrat",
+            size = 10) +
+  xlim(0,15) +
+  scale_fill_manual(name = "Flow direction",
+                    labels = c("Gross inflow",
+                               "Gross outflow"),
+                    values = c("#FFD84D", "#00B0F6")) +
+  labs(title = "Placebo trials for reshuffled bilateral IDs",
+       x = "Mean Square Error in test set",
+       y = "") +
+  theme(axis.text.y = element_blank())
+g
+ggsave(g,
+       file = here("Figures", "placebo_MSE.png"),
+       width = 6, height = 4, units = "in")
+

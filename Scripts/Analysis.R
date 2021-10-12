@@ -361,6 +361,58 @@ nrow(Africa_noEGY)
 write_feather(Africa_noEGY, here("Results", "Africa_noEGY.feather"))
 
 
+NGA <- panel_agg_trans %>%
+  filter(reporter.ISO == "NGA")
+nrow(NGA)
+# 305
+write_feather(NGA, here("Results", "NGA.feather"))
+
+Africa_noNGA <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "NGA")
+nrow(Africa_noNGA)
+# 12725
+write_feather(Africa_noNGA, here("Results", "Africa_noNGA.feather"))
+
+DZA <- panel_agg_trans %>%
+  filter(reporter.ISO == "DZA")
+nrow(DZA)
+# 278
+write_feather(DZA, here("Results", "DZA.feather"))
+
+Africa_noDZA <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "DZA")
+nrow(Africa_noDZA)
+# 12752
+write_feather(Africa_noDZA, here("Results", "Africa_noDZA.feather"))
+
+AGO <- panel_agg_trans %>%
+  filter(reporter.ISO == "AGO")
+nrow(AGO)
+# 74
+write_feather(AGO, here("Results", "AGO.feather"))
+
+Africa_noAGO <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "AGO")
+nrow(Africa_noAGO)
+# 12956
+write_feather(Africa_noAGO, here("Results", "Africa_noAGO.feather"))
+
+MAR <- panel_agg_trans %>%
+  filter(reporter.ISO == "MAR")
+nrow(MAR)
+# 797
+write_feather(MAR, here("Results", "MAR.feather"))
+
+Africa_noMAR <- panel_agg_trans %>%
+  filter(rRegion == "Africa") %>%
+  filter(reporter.ISO != "MAR")
+nrow(Africa_noMAR)
+# 12233
+write_feather(Africa_noMAR, here("Results", "Africa_noMAR.feather"))
+
 ## ## ## ## ## ## ## ## ## ## ##
 # OLS GRAVITY MODELS        ####
 ## ## ## ## ## ## ## ## ## ## ##
@@ -373,10 +425,8 @@ out_governance_vars <- c("rCorrCont", "pCorrCont",
                          "pRegQual")
 in_governance_vars <- c("rCorrCont", "pCorrCont",
                         "rRegQual")
-out_secrecy_vars <- c("pSecrecyScore",
-                      "rFATF", "pFATF")
-in_secrecy_vars <- c("rSecrecyScore",
-                     "rFATF", "pFATF")
+out_secrecy_vars <- c("rFATF", "pFATF")
+in_secrecy_vars <- c("rFATF", "pFATF")
 out_regul_vars <- c("ihs.tariff",
                     "kao_o",
                     "kai_d")
@@ -388,6 +438,7 @@ in_vars <- c(grav_vars, in_governance_vars, in_secrecy_vars, in_regul_vars)
 
 out_trn <- subset_complete(train.panel_agg, "ln.Tot_IFF_t", out_vars)
 in_trn <- subset_complete(train.panel_agg, "ln.In_Tot_IFF_t", in_vars)
+write_feather(out_trn, here("Results", "out_trn.feather"))
 
 out_tst <- subset_complete(test.panel_agg, "ln.Tot_IFF_t", out_vars)
 in_tst <- subset_complete(test.panel_agg, "ln.In_Tot_IFF_t", in_vars)
@@ -405,15 +456,15 @@ stargazer(out_fit, in_fit, type = "text")
 stargazer(out_fit, in_fit, type = "latex")
 
 calc_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars)
-# 6.841226
-calc_dollar_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars) / 10^9
+# 5.527022
+# calc_dollar_MSE(out_tst, "ln.Tot_IFF_t", out_preds_tst, out_vars) / 10^9
 # 1438.389
 calc_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars)
-# 6.205944
-calc_dollar_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars) / 10^9
+# 5.879005
+# calc_dollar_MSE(in_tst, "ln.In_Tot_IFF_t", in_preds_tst, in_vars) / 10^9
 # 10.22042
 rsquare(out_fit, out_tst)
-# 0.3604589
+# 0.471822
 
 
 # .. Full specification (all predictors) ####
