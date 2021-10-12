@@ -195,7 +195,11 @@ idx <- arrow::read_feather(here("Results", "idx.feather"))
 X <- arrow::read_feather(here("Results", "X_train.feather"))
 # Y_out <- arrow::read_feather(here("Results", "Y_out.feather"))
 Y_out <- arrow::read_feather(here("Results", "Y_train_out.feather"))
-Y_in <- arrow::read_feather(here("Results", "Y_in.feather"))
+Y_in <- arrow::read_feather(here("Results", "Y_train_in.feather"))
+
+idx %>%
+  distinct(reporter.ISO) %>%
+  nrow
 
 idx <- idx %>% 
   left_join(codes %>%
@@ -207,6 +211,10 @@ preds.LM.CV_out <- arrow::read_feather("Results/preds.LM.CV_out.feather") %>%
   rename(preds_LM_CV_out = "0")
 preds.RF.CV_out <- arrow::read_feather("Results/preds.RF.CV_out.feather") %>%
   rename(preds_RF_CV_out = "0")
+preds.RF.CV_in <- arrow::read_feather("Results/preds.RF.CV_in.feather") %>%
+  rename(preds_RF_CV_in = "0")
+
+
 preds.lightGBM.CV_out <- arrow::read_feather("Results/preds.lightGBM.CV_out.feather") %>%
   rename(preds_lightGBM_CV_out = "0")
 
@@ -215,6 +223,9 @@ results_out_CV <- bind_cols(idx,
                             preds.LM.CV_out,
                             preds.RF.CV_out,
                             preds.lightGBM.CV_out)
+
+results_in_CV <- bind_cols(idx,
+                            Y_in,preds.RF.CV_in)
 
 
 # .. Predictions in dollars ####
@@ -363,4 +374,52 @@ for (r in seq(1, length(countries))){
 }
 
 
+### inflows
+store.r2 <- matrix(NA, nrow = length(countries), ncol = 2)
+colnames(store.r2) <- c("ISO", "r2")
 
+for (r in seq(1, length(countries))){
+  viz <- results_in_CV %>%
+    filter(reporter.ISO == countries[r])
+  
+  lim <- max(viz$ln.In_Tot_IFF_t, viz$preds_RF_CV_in, na.rm = TRUE)
+  r2 <- cor(viz$ln.In_Tot_IFF_t, viz$preds_RF_CV_in)^2
+  r2.label <- paste("R^2 == ", round(r2, 2))
+  store.r2[r, 1] <- countries[r]
+  store.r2[r, 2] <- r2
+  
+  g <- ggplot(viz,
+              aes(x = ln.In_Tot_IFF_t,
+                  y = preds_RF_CV_in)) +
+    geom_point(alpha = 0.5) +
+    xlim(0, lim) +
+    ylim(0, lim) +
+    geom_smooth(method = "lm", 
+                formula = y ~ x,
+                color = "darkslategray4") +
+    geom_abline(intercept = 0 , slope = 1,
+                col = "grey") +
+    labs(title = names[r],
+         x = "True value (logged gross inflows)",
+         y = "Predicted value (logged gross inflows)") +
+    geom_text(x = -Inf,
+              y = Inf,
+              hjust = 0, vjust = 1,
+              label = r2.label,
+              family = "montserrat",
+              size = 10,
+              parse = TRUE)
+  ggsave(g,
+         file = here("Figures", paste0("RF_scatterpreds_in_", countries[r], ".png")),
+         width = 5, height = 5, units = "in")
+}
+
+
+
+
+## ## ## ## ## ## ## ## ## ## ##
+# PLACEBO TRIALS            ####
+## ## ## ## ## ## ## ## ## ## ##
+
+
+placebo_in <- arrow::read_feather(here("Results", "placebo_results_100.feather"))
