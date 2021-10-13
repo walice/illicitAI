@@ -67,13 +67,16 @@ load(here("Data", "IFF", "panel_agg_trans.Rdata"))
 
 LMIC_agg <- panel_agg_trans %>%
   filter(rIncome == "LIC" | rIncome == "LMC")
+LMIC_agg %>% distinct(reporter.ISO) %>% nrow
+LMIC_agg %>% filter(rRegion == "Africa") %>% distinct(reporter.ISO)
 
 Africa_agg <- panel_agg_trans %>%
   filter(rRegion == "Africa")
 
 HIC_agg <- panel_agg_trans %>%
   filter(rIncome == "HIC")
-
+HIC_agg %>% distinct(reporter.ISO) %>% nrow
+HIC_agg %>% filter(rRegion == "Africa") %>% distinct(reporter.ISO)
 
 
 ## ## ## ## ## ## ## ## ## ## ##
@@ -139,7 +142,8 @@ g <- ggplot(viz,
   labs(title = "Densities of transformed outcome variables",
        x = "Logged illicit financial flow ($)",
        y = "") +
-  theme(axis.text.y = element_blank())
+  theme(axis.text.y = element_blank(),
+        panel.grid.minor.y = element_blank())
 g
 ggsave(g,
        file = here("Figures", "densities_trans_Africa.png"),
@@ -166,8 +170,31 @@ X_cont <- X %>%
          "ihs.tariff",
          "kai_o", "kai_d", "kao_o", "kao_d")
 
-g <- ggcorr(X_cont, size = 10, family = "montserrat",
-            layout.exp = 10) +
+X_cont <- X_cont %>%
+  rename("ln.gdp_i" = "ln.gdp_o",
+         "ln.gdp_j" = "ln.gdp_d",
+         "ln.pop_i" = "ln.pop_o",
+         "ln.pop_j" = "ln.pop_d", 
+         "ihs.entry_cost_i" = "ihs.entry_cost_o",
+         "ihs.entry_cost_j" = "ihs.entry_cost_d",
+         "CorrCont_i" = "rCorrCont",
+         "CorrCont_j" = "pCorrCont",
+         "RegQual_i" = "rRegQual",
+         "RegQual_j" = "pRegQual",
+         "RuleLaw_i" = "rRuleLaw",
+         "RuleLaw_j" = "pRuleLaw",
+         "SecrecyScore_j" = "pSecrecyScore",
+         "FSI.rank_j" = "pFSI.rank",
+         "KFSI13_j" = "pKFSI13",
+         "KF1717_j" = "pKFSI17",
+         "KFSI20_j" = "pKFSI20",
+         "kai_i" = "kai_o", 
+         "kai_j" = "kai_d",
+         "kao_i" = "kao_o",
+         "kao_j" = "kao_d")
+
+g <- ggcorr(X_cont, size = 10, family = "montserrat", hjust = 0.75,
+            layout.exp = 5) +
   theme(legend.text = element_text(size = 30)) +
   ggtitle("Correlation matrix of feature space")
 g
@@ -250,9 +277,8 @@ preds.lightGBM.CV_out <- arrow::read_feather("Results/preds.lightGBM.CV_out.feat
 
 results_out_CV <- bind_cols(idx,
                             Y_out,
-                            preds.LM.CV_out,
-                            preds.RF.CV_out,
-                            preds.lightGBM.CV_out)
+
+                            preds.RF.CV_out)
 
 results_in_CV <- bind_cols(idx,
                             Y_in,preds.RF.CV_in)
@@ -364,7 +390,7 @@ names <- data.frame(countries) %>%
             by = c("countries" = "ISO3166.3")) %>%
   pull(Country)
 
-store.r2 <- matrix(NA, nrow = length(ISOs), ncol = 2)
+store.r2 <- matrix(NA, nrow = length(countries), ncol = 2)
 colnames(store.r2) <- c("ISO", "r2")
 
 for (r in seq(1, length(countries))){
@@ -386,8 +412,8 @@ for (r in seq(1, length(countries))){
     geom_smooth(method = "lm", 
                 formula = y ~ x,
                 color = "darkorchid") +
-    geom_abline(intercept = 0 , slope = 1,
-                col = "grey") +
+    # geom_abline(intercept = 0 , slope = 1,
+    #             col = "grey") +
     labs(title = names[r],
          x = "True value (logged gross outflows)",
          y = "Predicted value (logged gross outflows)") +
@@ -427,8 +453,8 @@ for (r in seq(1, length(countries))){
     geom_smooth(method = "lm", 
                 formula = y ~ x,
                 color = "darkslategray4") +
-    geom_abline(intercept = 0 , slope = 1,
-                col = "grey") +
+    # geom_abline(intercept = 0 , slope = 1,
+    #             col = "grey") +
     labs(title = names[r],
          x = "True value (logged gross inflows)",
          y = "Predicted value (logged gross inflows)") +
@@ -452,16 +478,21 @@ for (r in seq(1, length(countries))){
 ## ## ## ## ## ## ## ## ## ## ##
 
 
-placebo_in <- arrow::read_feather(here("Results", "placebo_results_100.feather"))
+placebo_in <- arrow::read_feather(here("Results", "placebo_results_100.feather")) %>%
+  rename_with( ~ paste0("In_", .x)) %>%
+  pivot_longer(c("In_R2_train", 
+                 "In_R2_test",
+                 "In_MSE_test"))
+placebo_out <- arrow::read_feather(here("Results", "placebo_results_out_100.feather")) %>%
+  rename_with( ~ paste0("Out_", .x)) %>%
+  pivot_longer(c("Out_R2_train", 
+                 "Out_R2_test",
+                 "Out_MSE_test"))
 
-viz <- placebo_in %>%
-  # select(ln.Tot_IFF_t, ln.In_Tot_IFF_t) %>%
-  pivot_longer(c("R2_train", 
-                 "R2_test",
-                 "MSE_test"))
+viz <- bind_rows(placebo_out, placebo_in)
 
 g <- ggplot(viz %>%
-              filter(name == "MSE_test"),
+              filter(name == "Out_MSE_test" | name == "In_MSE_test"),
             aes(x = value,
                 # group = name,
                 fill = name)) +
@@ -469,18 +500,23 @@ g <- ggplot(viz %>%
                col = NA) +
   # geom_vline(xintercept = 3.04,
   #            col = "#FFD84D") +
-  geom_segment(aes(x=4, 
+  geom_segment(aes(x=2.87, 
                    y=0, 
-                   xend=4, 
+                   xend=2.87, 
                    yend=1.1), 
                color = "#FFD84D") +
-  geom_text(x = 4,
+  geom_segment(aes(x=3.00, 
+                   y=0, 
+                   xend=3.00, 
+                   yend=1.1), 
+               color = "#00B0F6") +
+  geom_text(x = 2.9,
             y = 1.15,
             label = "MSE from true trades",
             col = "black",
             family = "montserrat",
             size = 10) +
-  geom_text(x = 12,
+  geom_text(x = 11,
             y = 1.15,
             label = "MSE from placebo trades",
             col = "black",
@@ -494,7 +530,11 @@ g <- ggplot(viz %>%
   labs(title = "Placebo trials for reshuffled bilateral IDs",
        x = "Mean Square Error in test set",
        y = "") +
-  theme(axis.text.y = element_blank())
+  theme(axis.text.y = element_blank(),
+        # panel.grid.major.y = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.minor.x = element_blank())
+
 g
 ggsave(g,
        file = here("Figures", "placebo_MSE.png"),

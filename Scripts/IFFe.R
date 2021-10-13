@@ -248,3 +248,60 @@ ggsave(g,
        width = 6, height = 5, units = "in")
 
 
+
+
+## ## ## ## ## ## ## ## ## ## ##
+# BUBBLE CHART              ####
+## ## ## ## ## ## ## ## ## ## ##
+
+# .. Import global secrecy score and rank ####
+FSI <- read_excel(here("Data", "TJN", "FSI-Rankings-2018.xlsx"), 
+                  sheet = "FSI Results")
+
+FSI$Jurisdiction<- gsub("2$", "", FSI$Jurisdiction)
+FSI <- FSI %>%
+  select(Jurisdiction, secrecy.score = `Secrecy Score4`, Rank)
+
+FSI <- FSI %>%
+  left_join(codes %>% select(Country, ISO3166.3),
+            by = c("Jurisdiction" = "Country"))
+
+FSI %>% filter(is.na(ISO3166.3))
+# Only footnotes remain, we can drop the NAs.
+
+FSI <- FSI %>%
+  filter(!is.na(ISO3166.3)) %>%
+  mutate(Rank = as.numeric(Rank))
+
+
+load(here("Data", "IFF", "Inflow_GER_Orig_Avg.Rdata"))
+
+top_GERinflows_dollar <- Inflow_GER_Orig_Avg %>%
+  top_n(5, abs(Tot_IFF)) %>%
+  arrange(desc(abs(Tot_IFF))) %>%
+  pull(reporter.ISO)
+
+
+viz <- left_join(Inflow_GER_Orig_Avg, 
+                 FSI %>%
+                   select(ISO3166.3, secrecy.score, Rank),
+                 by = c("reporter.ISO" = "ISO3166.3")) %>%
+  mutate(Tot_IFF = abs(Tot_IFF)) %>%
+  select(reporter, reporter.ISO, Tot_IFF, secrecy.score, Rank)
+
+
+cor(viz$Tot_IFF, viz$Rank, method = "spearman", use = "pairwise.complete.obs")
+cor <- cor.test(viz$Tot_IFF, viz$Rank, method = "spearman")
+cor$estimate
+# -0.5782995 
+cor$p.value
+# 6.296211e-09
+
+viz <- left_join(Inflow_GER_Orig_Avg, 
+                 FSI %>%
+                   select(ISO3166.3, Rank),
+                 by = c("reporter.ISO" = "ISO3166.3")) %>%
+  mutate(reporter.ISO = ifelse(reporter.ISO %in% top_GERinflows_dollar,
+                               reporter.ISO, NA),
+         reporter = ifelse(reporter.ISO %in% top_GERinflows_dollar,
+                           reporter, NA))

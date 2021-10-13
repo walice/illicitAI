@@ -413,6 +413,15 @@ nrow(Africa_noMAR)
 # 12233
 write_feather(Africa_noMAR, here("Results", "Africa_noMAR.feather"))
 
+
+train_agg_smp <- arrow::read_feather(here("Results", "train_agg_smp.feather"))
+train_agg_smp %>%
+  filter(reporter.ISO == "AGO") %>% nrow
+
+train_agg_smp %>%
+  filter(reporter.ISO == "ZAF") %>% nrow
+
+
 ## ## ## ## ## ## ## ## ## ## ##
 # OLS GRAVITY MODELS        ####
 ## ## ## ## ## ## ## ## ## ## ##
@@ -423,6 +432,8 @@ grav_vars <- c("ln.gdp_o", "ln.gdp_d",
                "rta")
 out_governance_vars <- c("rCorrCont", "pCorrCont",
                          "pRegQual")
+# out_governance_vars <- c("pRegQual")
+# in_governance_vars <- c("rRegQual")
 in_governance_vars <- c("rCorrCont", "pCorrCont",
                         "rRegQual")
 out_secrecy_vars <- c("rFATF", "pFATF")
@@ -438,6 +449,7 @@ in_vars <- c(grav_vars, in_governance_vars, in_secrecy_vars, in_regul_vars)
 
 out_trn <- subset_complete(train.panel_agg, "ln.Tot_IFF_t", out_vars)
 in_trn <- subset_complete(train.panel_agg, "ln.In_Tot_IFF_t", in_vars)
+
 write_feather(out_trn, here("Results", "out_trn.feather"))
 
 out_tst <- subset_complete(test.panel_agg, "ln.Tot_IFF_t", out_vars)
