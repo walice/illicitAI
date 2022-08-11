@@ -10,4 +10,4 @@ Sys.setenv(LIBARROW_BINARY = TRUE)
 install.packages("arrow", 
                  repos = "http://cran.us.r-project.org",
                  type = "source")
-install.packages(c("wesanderson", "sysfonts", "showtext", "GGally", "maptools", "foreign", "mapproj", "gridExtra"))
+install.packages(c("wesanderson", "sysfonts", "showtext", "GGally", "mapproj", "gridExtra"))
