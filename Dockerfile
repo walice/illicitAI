@@ -180,8 +180,8 @@ USER ${NB_USER}
 # Jupyter notebook extensions & packages
 RUN \
     # Python packages
-    pip install lightgbm papermill \
-    openpyxl pyreadr networkx joypy && \
+    pip install lightgbm pyarrow feather-format papermill nested-cv \
+    openpyxl pyreadr networkx==2.5 joypy && \
     \
     # Install Jupyter Notebook extensions
     pip install jupyter_contrib_nbextensions jupyter_nbextensions_configurator && \
