@@ -28,9 +28,9 @@ VM   |            |__ illicitAI.Rproj
                   |__ setup.sh
 ```
 
-<div><span style="font-weight:bold;font-size:28px">Run the code live in Jupyter Lab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/main?urlpath=lab"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/jupyter/jupyter-original-wordmark.svg" alt="Jupyter" width="100"/></a></div>
+<div><span style="font-weight:bold;font-size:28px">Run the code live in Jupyter Lab&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/dev?urlpath=lab"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/jupyter/jupyter-original-wordmark.svg" alt="Jupyter" width="100"/></a></div>
 
-<div><span style="font-weight:bold;font-size:28px">Run the code live in RStudio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/main?urlpath=rstudio"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/rstudio/rstudio-original.svg" alt="RStudio" width="85"/></a></div>
+<div><span style="font-weight:bold;font-size:28px">Run the code live in RStudio&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a href="https://mybinder.org/v2/gh/walice/illicitAI/dev?urlpath=rstudio"><img style="vertical-align:middle" src="https://raw.githubusercontent.com/devicons/devicon/master/icons/rstudio/rstudio-original.svg" alt="RStudio" width="85"/></a></div>
 
 
 ### Set up
