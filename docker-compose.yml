@@ -1,10 +1,9 @@
-version: '3'
 services:
   notebook:
+    image: alicesoto/illicitai:${TAG:-latest}
     build:
       context: ./
       dockerfile: Dockerfile
-    image: alicesoto/illicitai:${TAG:-latest}
     volumes:
       - ${HOST_DIR}:/home/jovyan/work
       - ${CERT_DIR}:/etc/ssl/notebook
