@@ -1,6 +1,6 @@
 services:
   notebook:
-    image: alicesoto/illicitai:${TAG:-latest}
+    image: walice/illicitai:${TAG:-latest}
     build:
       context: ./
       dockerfile: Dockerfile

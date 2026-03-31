@@ -1,1 +1,1 @@
-docker pull alicesoto/illicitai:latest
+docker pull walice/illicitai:latest
